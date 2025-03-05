@@ -247,9 +247,11 @@
                 },
                 player1: null,
                 player2: null,
-                // Add attack queue to manage attacks in order
-                attackQueue: [],
-                processingAttack: false,
+                
+                // Global damage tracking
+                lastAttackId: 0,
+                globalCombatLock: false,
+                lockEndTime: 0,
                 
                 // All methods defined directly on the object
                 setPlayers: function(char1, char2) {
@@ -277,10 +279,12 @@
                             isBlocking: false,
                             isAttacking: false,
                             attackType: null,
-                            hasHit: false,
                             blockAnimation: false,
                             hurtTimeoutId: null,
                             attackTimeoutId: null,
+                            
+                            // Add direct damage tracking
+                            lastDamageTime: 0,
                             
                             update: function() {
                                 // Basic physics
@@ -312,6 +316,11 @@
                                 ctx.font = '16px Arial';
                                 ctx.textAlign = 'center';
                                 ctx.fillText(this.name, this.x, this.y - this.height - 10);
+                                
+                                // Draw health directly on character
+                                ctx.fillStyle = 'white';
+                                ctx.font = '12px Arial';
+                                ctx.fillText(`HP: ${this.health}`, this.x, this.y - this.height - 30);
                                 
                                 // Draw if blocking
                                 if (this.isBlocking) {
@@ -400,34 +409,6 @@
                                 return true;
                             },
                             
-                            takeDamage: function(amount) {
-                                // Clear any existing hurt timeout
-                                if (this.hurtTimeoutId) {
-                                    clearTimeout(this.hurtTimeoutId);
-                                    this.hurtTimeoutId = null;
-                                }
-                                
-                                if (this.isBlocking) {
-                                    amount = Math.floor(amount / 3);
-                                    console.log(`Blocked! Reduced damage to ${amount}`);
-                                    this.blockAnimation = true;
-                                    const self = this;
-                                    setTimeout(() => {
-                                        self.blockAnimation = false;
-                                    }, 300);
-                                }
-                                
-                                // Ensure amount is positive and health never increases
-                                amount = Math.abs(amount);
-                                
-                                // Subtract damage from health
-                                const oldHealth = this.health;
-                                this.health = Math.max(0, Math.min(this.health - amount, this.maxHealth));
-                                
-                                console.log(`${this.name} health: ${oldHealth} -> ${this.health}/${this.maxHealth}, damage: ${amount}`);
-                                return true;
-                            },
-                            
                             moveLeft: function() { this.vx = -this.speed; this.isFacingRight = false; },
                             moveRight: function() { this.vx = this.speed; this.isFacingRight = true; },
                             stopMoving: function() { this.vx = 0; },
@@ -492,35 +473,77 @@
                     return true;
                 },
                 
-                // New method to process attacks one at a time
-                processAttackQueue: function() {
-                    if (this.processingAttack || this.attackQueue.length === 0) return;
+                // NEW DIRECT DAMAGE SYSTEM
+                applyDamage: function(attacker, target, damage, attackType) {
+                    // Skip if we're in combat lock
+                    if (this.globalCombatLock) {
+                        console.log("Combat locked, skipping hit");
+                        return false;
+                    }
                     
-                    this.processingAttack = true;
-                    const attack = this.attackQueue.shift();
+                    // Set the global combat lock
+                    this.globalCombatLock = true;
+                    this.lockEndTime = Date.now() + 500; // 500ms lock
                     
-                    console.log(`Processing attack: ${attack.attacker.name} -> ${attack.target.name} (${attack.damage})`);
-                    attack.target.takeDamage(attack.damage);
+                    // Track this attack
+                    this.lastAttackId++;
+                    const attackId = this.lastAttackId;
+                    
+                    console.log(`[ATTACK #${attackId}] ${attacker.name} ${attackType} hits ${target.name}`);
+                    
+                    // Calculate damage with block
+                    let finalDamage = damage;
+                    if (target.isBlocking) {
+                        finalDamage = Math.floor(damage / 3);
+                        console.log(`[ATTACK #${attackId}] Blocked! Reduced damage from ${damage} to ${finalDamage}`);
+                        
+                        // Visual feedback for block
+                        target.blockAnimation = true;
+                        setTimeout(() => {
+                            target.blockAnimation = false;
+                        }, 300);
+                    }
+                    
+                    // Get current health and apply damage
+                    const oldHealth = target.health;
+                    target.health = Math.max(0, Math.min(oldHealth - finalDamage, target.maxHealth));
+                    
+                    // Log the health change with attack ID for tracking
+                    console.log(`[ATTACK #${attackId}] ${target.name} health: ${oldHealth} -> ${target.health}/${target.maxHealth} (damage: ${finalDamage})`);
+                    
+                    // Update the health display
                     this.updateHealthDisplay();
                     
-                    // Give a delay between processing attacks
-                    const self = this;
+                    // Update last damage time on the target
+                    target.lastDamageTime = Date.now();
+                    
+                    // Release combat lock after delay
                     setTimeout(() => {
-                        self.processingAttack = false;
-                        self.processAttackQueue();
-                    }, 100);
+                        console.log(`[ATTACK #${attackId}] Combat unlocked`);
+                        this.globalCombatLock = false;
+                    }, 500);
+                    
+                    // Check for KO
+                    if (target.health <= 0) {
+                        const winner = (target === this.player1) ? 2 : 1;
+                        console.log(`[ATTACK #${attackId}] Player ${winner} wins by KO!`);
+                        this.endRound(winner);
+                    }
+                    
+                    return true;
                 },
                 
-                // Add attack to queue instead of applying it immediately
-                addAttackToQueue: function(attacker, target, damage, type) {
-                    this.attackQueue.push({
-                        attacker: attacker,
-                        target: target,
-                        damage: damage,
-                        type: type
-                    });
+                // Check if combat is locked
+                isCombatLocked: function() {
+                    if (!this.globalCombatLock) return false;
                     
-                    this.processAttackQueue();
+                    // Check if lock has expired
+                    if (Date.now() >= this.lockEndTime) {
+                        this.globalCombatLock = false;
+                        return false;
+                    }
+                    
+                    return true;
                 },
                 
                 connect: function(elements) {
@@ -543,6 +566,8 @@
                     this.currentRound = 1;
                     this.p1Wins = 0;
                     this.p2Wins = 0;
+                    this.lastAttackId = 0;
+                    this.globalCombatLock = false;
                     
                     // Reset the announcement elements to make sure they're hidden
                     if (this.announcementElement) {
@@ -581,16 +606,16 @@
                     console.log("Starting round", this.currentRound);
                     this.gameState = 'starting';
                     
-                    // Clear attack queue
-                    this.attackQueue = [];
-                    this.processingAttack = false;
+                    // Reset combat system
+                    this.lastAttackId = 0;
+                    this.globalCombatLock = false;
                     
                     // Reset player positions
                     if (this.player1) {
                         this.player1.x = 200;
                         this.player1.health = 100; // Always start with exact health value
                         this.player1.maxHealth = 100;
-                        this.player1.hasHit = false;
+                        this.player1.lastDamageTime = 0;
                         if (this.player1.attackTimeoutId) clearTimeout(this.player1.attackTimeoutId);
                         if (this.player1.hurtTimeoutId) clearTimeout(this.player1.hurtTimeoutId);
                     }
@@ -599,7 +624,7 @@
                         this.player2.x = 600;
                         this.player2.health = 100; // Always start with exact health value
                         this.player2.maxHealth = 100;
-                        this.player2.hasHit = false;
+                        this.player2.lastDamageTime = 0;
                         if (this.player2.attackTimeoutId) clearTimeout(this.player2.attackTimeoutId);
                         if (this.player2.hurtTimeoutId) clearTimeout(this.player2.hurtTimeoutId);
                     }
@@ -656,6 +681,9 @@
                 handleInput: function() {
                     if (this.gameState !== 'fighting') return;
                     
+                    // Skip input handling during combat lock
+                    if (this.isCombatLocked()) return;
+                    
                     // Handle player 1 movement
                     if (this.player1) {
                         // Handle movement
@@ -700,8 +728,11 @@
                 handleAI: function() {
                     if (this.gameState !== 'fighting' || !this.useAI || !this.player2) return;
                     
+                    // Never process AI during combat lock
+                    if (this.isCombatLocked()) return;
+                    
                     // Basic AI: move toward player1 and randomly attack
-                    if (Math.random() < 0.01) { // Reduced from 0.02 to 0.01 (1% chance to jump)
+                    if (Math.random() < 0.0003) { // Extremely reduced (0.03% chance to jump)
                         this.player2.jump();
                     }
                     
@@ -712,9 +743,6 @@
                         return;
                     }
                     
-                    // If has hit, don't allow more attacks for a moment
-                    if (this.player2.hasHit) return;
-                    
                     // Move toward player
                     if (this.player2.x > this.player1.x + 100) {
                         this.player2.moveLeft();
@@ -724,13 +752,14 @@
                         // In attack range - reduce attack frequency
                         const attackChance = Math.random();
                         
-                        if (attackChance < 0.005) { // Reduced from 0.01 to 0.005 (0.5% chance for special)
+                        // DRASTICALLY reduced AI attack rates
+                        if (attackChance < 0.0002) { // 0.02% chance for special
                             this.player2.special();
-                        } else if (attackChance < 0.015) { // Reduced from 0.03 to 0.015 (1% chance for kick)
+                        } else if (attackChance < 0.0005) { // 0.03% chance for kick
                             this.player2.kick();
-                        } else if (attackChance < 0.03) { // Reduced from 0.06 to 0.03 (1.5% chance for punch)
+                        } else if (attackChance < 0.001) { // 0.05% chance for punch
                             this.player2.punch();
-                        } else if (attackChance < 0.05) { // Reduced from 0.08 to 0.05 (2% chance to block)
+                        } else if (attackChance < 0.005) { // 0.4% chance to block
                             this.player2.startBlock();
                         } else {
                             this.player2.endBlock();
@@ -746,21 +775,23 @@
                     if (this.player1) this.player1.update();
                     if (this.player2) this.player2.update();
                     
-                    // Check collisions
-                    this.checkCollisions();
+                    // Check if combat lock expired
+                    this.isCombatLocked();
                     
-                    // Check for KO
-                    if (this.player1.health <= 0) {
-                        console.log("Player 2 (AI) wins!");
-                        this.endRound(2);
-                    } else if (this.player2.health <= 0) {
-                        console.log("Player 1 wins!");
-                        this.endRound(1);
+                    // Check collisions only if not in combat lock
+                    if (!this.globalCombatLock) {
+                        this.checkCollisions();
                     }
                 },
                 
                 checkCollisions: function() {
                     if (!this.player1 || !this.player2) return;
+                    
+                    // Skip collision detection during combat lock
+                    if (this.globalCombatLock) return;
+                    
+                    // Skip if we've recently checked (prevent double checks in same frame)
+                    const currentTime = Date.now();
                     
                     // Check for attack hitboxes
                     const p1Hitbox = this.player1.getCurrentHitbox();
@@ -782,31 +813,19 @@
                     };
                     
                     // Check if Player 1's attack hits Player 2
-                    if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds) && !this.player1.hasHit) {
+                    if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds)) {
                         console.log(`P1 ${this.player1.attackType} hit P2!`);
-                        this.player1.hasHit = true;
                         
-                        // Add attack to queue instead of applying damage immediately
-                        this.addAttackToQueue(this.player1, this.player2, p1Hitbox.damage, this.player1.attackType);
-                        
-                        // Adding a longer cooldown to prevent multiple hits
-                        setTimeout(() => {
-                            this.player1.hasHit = false;
-                        }, 800); // Increased from 500 to 800ms
+                        // Apply damage directly, no queue
+                        this.applyDamage(this.player1, this.player2, p1Hitbox.damage, this.player1.attackType);
                     }
                     
-                    // Check if Player 2's attack hits Player 1
-                    if (p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds) && !this.player2.hasHit) {
+                    // Check if Player 2's attack hits Player 1 - only check if no Player 1 hit in this frame
+                    if (!this.globalCombatLock && p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds)) {
                         console.log(`P2 ${this.player2.attackType} hit P1!`);
-                        this.player2.hasHit = true;
                         
-                        // Add attack to queue instead of applying damage immediately
-                        this.addAttackToQueue(this.player2, this.player1, p2Hitbox.damage, this.player2.attackType);
-                        
-                        // Adding a longer cooldown to prevent multiple hits
-                        setTimeout(() => {
-                            this.player2.hasHit = false;
-                        }, 800); // Increased from 500 to 800ms
+                        // Apply damage directly, no queue
+                        this.applyDamage(this.player2, this.player1, p2Hitbox.damage, this.player2.attackType);
                     }
                 },
                 
