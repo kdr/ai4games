@@ -35,7 +35,12 @@ orbitControls.dampingFactor = 0.05;
 orbitControls.screenSpacePanning = false;
 orbitControls.minDistance = 5;
 orbitControls.maxDistance = 50;
-orbitControls.maxPolarAngle = Math.PI / 2;
+orbitControls.maxPolarAngle = Math.PI / 2; // Restrict to not go below horizon
+orbitControls.minPolarAngle = Math.PI / 6; // Restrict to not go too high (almost top-down)
+orbitControls.rotateSpeed = 0.7; // Adjust rotate speed for better mouse control
+
+// Disable keyboard navigation in OrbitControls since we handle it ourselves
+orbitControls.enableKeys = false;
 
 // Lights setup
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
@@ -226,9 +231,38 @@ function animate() {
         direction.normalize();
     }
     
-    // Apply movement
-    velocity.x = direction.x * movementSpeed;
-    velocity.z = direction.z * movementSpeed;
+    // Get camera direction
+    const cameraDirection = new THREE.Vector3();
+    camera.getWorldDirection(cameraDirection);
+    cameraDirection.y = 0; // Keep movement on the horizontal plane
+    cameraDirection.normalize();
+    
+    // Get camera's right vector (perpendicular to direction)
+    const cameraRight = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x);
+    
+    // Calculate movement direction relative to camera
+    const moveDirection = new THREE.Vector3();
+    
+    // Forward/backward movement along camera direction
+    if (direction.z !== 0) {
+        moveDirection.add(cameraDirection.clone().multiplyScalar(-direction.z));
+    }
+    
+    // Left/right movement perpendicular to camera direction
+    if (direction.x !== 0) {
+        moveDirection.add(cameraRight.clone().multiplyScalar(direction.x));
+    }
+    
+    // Normalize the final direction
+    if (moveDirection.length() > 0) {
+        moveDirection.normalize();
+        // Apply movement
+        velocity.x = moveDirection.x * movementSpeed;
+        velocity.z = moveDirection.z * movementSpeed;
+    } else {
+        velocity.x = 0;
+        velocity.z = 0;
+    }
     
     // Apply gravity
     if (!isOnGround) {
