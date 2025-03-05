@@ -1,0 +1,131 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #222;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+.game-container {
+    position: relative;
+    width: 800px;
+    height: 500px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+}
+
+canvas {
+    display: block;
+    background: #444;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+#ui {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    width: 100%;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 2;
+}
+
+.health-bar {
+    width: 250px;
+    height: 25px;
+    border: 3px solid #fff;
+    position: relative;
+    background-color: #333;
+}
+
+#player1-health .health-fill {
+    background-color: #f00;
+    width: 100%;
+    height: 100%;
+}
+
+#player2-health .health-fill {
+    background-color: #00f;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    right: 0;
+}
+
+#round-info {
+    text-align: center;
+    color: white;
+}
+
+#timer {
+    font-size: 32px;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+}
+
+#rounds {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.round-indicator {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.round-indicator.player1.won {
+    background-color: #f00;
+}
+
+.round-indicator.player2.won {
+    background-color: #00f;
+}
+
+#game-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 36px;
+    font-weight: bold;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+#game-message.show {
+    opacity: 1;
+}
+
+#restart-button {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 30px;
+    background-color: #f00;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    z-index: 3;
+    border-radius: 5px;
+} 
