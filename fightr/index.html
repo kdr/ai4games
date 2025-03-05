@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fightr - Street Fighter Style Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles for AI info display */
+        #ai-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 200px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .key-note {
+            color: #ff3019;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .victory-message {
+            color: #ff3019;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            animation: pulse-text 1.5s infinite;
+        }
+        
+        @keyframes pulse-text {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="title-screen" class="screen active">
+            <h1>FIGHTR</h1>
+            <button id="start-btn">START GAME</button>
+        </div>
+
+        <div id="character-select" class="screen">
+            <h2>SELECT YOUR FIGHTER</h2>
+            <div class="player-select">
+                <div class="player-info">
+                    <h3>PLAYER 1</h3>
+                    <div id="p1-selection" class="selected-character">
+                        <span class="character-name">Select a character</span>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <h3>AI OPPONENT</h3>
+                    <div id="p2-selection" class="selected-character">
+                        <span class="character-name">AI will select...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="character-grid">
+                <div class="character" data-character="ninja">
+                    <img src="assets/ninja_portrait.png" alt="Ninja">
+                    <span>NINJA</span>
+                </div>
+                <div class="character" data-character="samurai">
+                    <img src="assets/samurai_portrait.png" alt="Samurai">
+                    <span>SAMURAI</span>
+                </div>
+                <div class="character" data-character="monk">
+                    <img src="assets/monk_portrait.png" alt="Monk">
+                    <span>MONK</span>
+                </div>
+                <div class="character" data-character="ronin">
+                    <img src="assets/ronin_portrait.png" alt="Ronin">
+                    <span>RONIN</span>
+                </div>
+            </div>
+            <button id="fight-btn" disabled>FIGHT!</button>
+            <div class="key-note">Press G (punch), H (kick), or J (special) to attack!</div>
+        </div>
+
+        <div id="battle-screen" class="screen">
+            <div class="hud">
+                <div class="player-hud" id="p1-hud">
+                    <div class="player-name">PLAYER 1</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="p1-health"></div>
+                    </div>
+                </div>
+                <div class="timer">90</div>
+                <div class="player-hud" id="p2-hud">
+                    <div class="player-name">AI OPPONENT</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="p2-health"></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="game-canvas" width="800" height="450"></canvas>
+            
+            <!-- AI Info Display -->
+            <div id="ai-info">
+                <div>AI STATUS</div>
+                <div id="ai-state">Thinking...</div>
+                <div id="ai-action">No action</div>
+                <div id="ai-target">Distance: --</div>
+            </div>
+        </div>
+
+        <div id="round-announcement" class="announcement">
+            <div id="round-text">GET READY</div>
+            <div id="fight-text">FIGHT!</div>
+        </div>
+
+        <div id="victory-screen" class="screen">
+            <h2 id="winner-text">PLAYER 1 WINS!</h2>
+            <div class="victory-message">Returning to character select...</div>
+            <button id="rematch-btn" style="display:none;">REMATCH</button>
+            <button id="character-select-btn">SELECT NEW FIGHTER</button>
+        </div>
+    </div>
+
+    <div id="controls-overlay" class="overlay">
+        <div class="overlay-content">
+            <h2>Controls</h2>
+            <div class="controls-section">
+                <h3>Player Controls</h3>
+                <ul>
+                    <li>W: Jump</li>
+                    <li>A: Move Left</li>
+                    <li>D: Move Right</li>
+                    <li>S: Block</li>
+                    <li>G: Punch</li>
+                    <li>H: Kick</li>
+                    <li>J: Special</li>
+                </ul>
+            </div>
+            <div class="controls-section">
+                <h3>AI Behavior</h3>
+                <p>The AI opponent will intelligently:</p>
+                <ul>
+                    <li>Maintain optimal distance</li>
+                    <li>Block incoming attacks</li>
+                    <li>Strike when in range</li>
+                    <li>Use special moves strategically</li>
+                </ul>
+            </div>
+            <button id="close-controls">Close</button>
+        </div>
+    </div>
+
+    <button id="controls-btn" class="controls-button">Controls</button>
+
+    <script src="js/characters.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 

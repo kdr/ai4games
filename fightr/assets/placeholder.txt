@@ -1,0 +1,11 @@
+This file is a placeholder for the assets directory.
+
+The game is designed to use the following image assets:
+- dojo_bg.png: Background image for the dojo stage
+- ninja_portrait.png: Character selection portrait for the Ninja
+- samurai_portrait.png: Character selection portrait for the Samurai
+- monk_portrait.png: Character selection portrait for the Monk
+- ronin_portrait.png: Character selection portrait for the Ronin
+
+For now, the game will use color-based placeholders for characters and a simple background.
+For a more visually appealing game, replace these with actual image assets. 
