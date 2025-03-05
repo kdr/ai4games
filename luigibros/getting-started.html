@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started with Luigi Bros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #2e7d32;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .steps {
+            counter-reset: step-counter;
+            margin-left: 0;
+            padding-left: 0;
+        }
+        .step {
+            list-style-type: none;
+            margin-bottom: 20px;
+            position: relative;
+            padding-left: 50px;
+            border-left: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .step::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: -15px;
+            top: -5px;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Getting Started with Luigi Bros Game</h1>
+        <p>Welcome to the Luigi Bros platform game! This guide will help you set up and start playing the game.</p>
+    </div>
+
+    <div class="container">
+        <h2>Quick Links</h2>
+        <div style="text-align: center;">
+            <a href="asset-generator.html" class="btn">Generate Image Assets</a>
+            <a href="sound-generator.html" class="btn">Generate Sound Assets</a>
+            <a href="asset-manager.html" class="btn">Manage Assets</a>
+            <a href="index.html" class="btn">Play Game</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Setup Instructions</h2>
+        <ol class="steps">
+            <li class="step">
+                <h3>Generate Game Assets</h3>
+                <p>Before you can play the game, you need to create the image and sound assets:</p>
+                <p>Open the <a href="asset-generator.html">Image Asset Generator</a> and generate all image assets by clicking the "Generate" button for each asset and then "Save" to download them.</p>
+                <p>Then open the <a href="sound-generator.html">Sound Asset Generator</a> and do the same for all sound effects and music.</p>
+            </li>
+            <li class="step">
+                <h3>Organize Assets</h3>
+                <p>Place all generated assets in the correct folders:</p>
+                <ul>
+                    <li>Put all image files (.png) in the <code>assets/images/</code> folder</li>
+                    <li>Put all sound files (.wav, .mp3) in the <code>assets/sounds/</code> folder</li>
+                </ul>
+                <p>You can use the <a href="asset-manager.html">Asset Manager</a> to help organize your files.</p>
+            </li>
+            <li class="step">
+                <h3>Play the Game</h3>
+                <p>Once all assets are in place, open <a href="index.html">index.html</a> in your web browser to start playing!</p>
+                <p>Controls:</p>
+                <ul>
+                    <li><strong>Arrow Left/Right</strong>: Move Luigi</li>
+                    <li><strong>Arrow Up</strong>: Jump</li>
+                    <li><strong>Space</strong>: Start game (on title screen)</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="container">
+        <h2>Game Objective</h2>
+        <p>As Luigi, your goals are:</p>
+        <ul>
+            <li>Collect all coins to win the game</li>
+            <li>Jump on enemies to defeat them</li>
+            <li>Avoid being hit by enemies from the sides</li>
+            <li>Reach the highest score possible</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>Project Structure</h2>
+        <pre>
+luigibros/
+├── index.html           # Main game HTML file
+├── styles.css           # CSS styles for the game
+├── getting-started.html # This guide
+├── asset-generator.html # Tool to generate image assets
+├── sound-generator.html # Tool to generate sound assets
+├── asset-manager.html   # Tool to organize assets
+├── assets/
+│   ├── images/         # All game images go here
+│   └── sounds/         # All game sounds go here
+└── js/
+    ├── main.js         # Game initialization
+    ├── config.js       # Game configuration
+    └── scenes/         # Game scenes
+        ├── BootScene.js
+        ├── PreloadScene.js
+        ├── TitleScene.js
+        └── GameScene.js
+        </pre>
+    </div>
+
+    <div class="container">
+        <h2>Troubleshooting</h2>
+        <p>If the game doesn't load or shows errors:</p>
+        <ul>
+            <li>Make sure all assets are generated and placed in the correct folders</li>
+            <li>Check browser console for errors (F12 in most browsers)</li>
+            <li>Try using a modern browser like Chrome, Firefox, or Edge</li>
+            <li>If files appear to be missing, verify the file names match exactly what's expected</li>
+        </ul>
+    </div>
+
+    <div class="container" style="text-align: center;">
+        <h2>Ready to Play?</h2>
+        <a href="index.html" class="btn" style="font-size: 20px; padding: 15px 30px;">Launch Luigi Bros!</a>
+    </div>
+</body>
+</html> 

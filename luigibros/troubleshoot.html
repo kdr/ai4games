@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luigi Bros - Troubleshooting Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #e53935;
+            border-bottom: 2px solid #e53935;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2196f3;
+            margin-top: 30px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .solution {
+            background-color: #e8f5e9;
+            border-left: 5px solid #4caf50;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #2196f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #0b7dda;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Luigi Bros Troubleshooting Guide</h1>
+        
+        <div class="section">
+            <p>
+                This guide will help you diagnose and fix common issues with the Luigi Bros game.
+                If you're experiencing problems, work through these steps to get your game running.
+            </p>
+            
+            <div>
+                <a href="index.html" class="btn">Back to Game</a>
+                <a href="asset-test.html" class="btn">Asset Test</a>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Issue: Blank Screen / Game Not Loading</h2>
+            
+            <h3>1. Check Console for Errors</h3>
+            <p>
+                Open your browser's developer tools by pressing <code>F12</code> or <code>Ctrl+Shift+I</code> (Windows/Linux) or 
+                <code>Cmd+Option+I</code> (Mac). Look for any red error messages in the console.
+            </p>
+            
+            <h3>2. Common Error Messages and Solutions</h3>
+            
+            <h4>"Phaser library not loaded"</h4>
+            <div class="solution">
+                <strong>Solution:</strong> Ensure you have an internet connection to load the Phaser library from CDN. 
+                Alternatively, download Phaser locally and update the script tag in index.html.
+            </div>
+            
+            <h4>"Scene class not found"</h4>
+            <div class="solution">
+                <strong>Solution:</strong> Make sure all scene JS files are correctly loaded before config.js. 
+                Check the script tags in index.html to verify they're in the correct order.
+            </div>
+            
+            <h4>"Failed to load asset"</h4>
+            <div class="solution">
+                <strong>Solution:</strong> Make sure all image and sound files are in the correct directories:
+                <ul>
+                    <li>Images should be in: <code>assets/images/</code></li>
+                    <li>Sounds should be in: <code>assets/sounds/</code></li>
+                </ul>
+                Run the <a href="asset-test.html">Asset Test</a> to check which files are missing or cannot be loaded.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Issue: Game Loads But Doesn't Work Correctly</h2>
+            
+            <h3>1. No Controls / Cannot Move Character</h3>
+            <div class="solution">
+                <strong>Solution:</strong> Make sure keyboard controls are working by testing the arrow keys. 
+                On mobile devices, ensure touch controls are visible and responsive.
+            </div>
+            
+            <h3>2. Game Is Too Slow / Laggy</h3>
+            <div class="solution">
+                <strong>Solution:</strong> Try reducing the game size or switching to a more powerful device.
+                In config.js, you can set <code>pixelArt: false</code> to improve performance.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Advanced Troubleshooting</h2>
+            
+            <h3>File Structure Check</h3>
+            <p>
+                Make sure your file structure matches the following:
+            </p>
+            <pre>
+luigibros/
+├── assets/
+│   ├── images/
+│   │   ├── background.png
+│   │   ├── brick.png
+│   │   ├── coin.png
+│   │   ├── goomba.png
+│   │   ├── ground.png
+│   │   ├── loading-background.png
+│   │   ├── luigi.png
+│   │   ├── pipe.png
+│   │   └── title.png
+│   └── sounds/
+│       ├── coin.wav
+│       ├── game-over.wav
+│       ├── jump.wav
+│       └── theme.mp3
+├── js/
+│   ├── scenes/
+│   │   ├── BootScene.js
+│   │   ├── GameScene.js
+│   │   ├── PreloadScene.js
+│   │   └── TitleScene.js
+│   ├── config.js
+│   ├── debug.js
+│   └── main.js
+├── index.html
+└── styles.css</pre>
+            
+            <h3>Browser Compatibility</h3>
+            <p>
+                The game works best on modern browsers. If you're using an older browser, try updating to the latest version
+                or switching to Chrome, Firefox, or Edge.
+            </p>
+            
+            <h3>Local Server</h3>
+            <p>
+                Some browsers restrict loading assets when opening HTML files directly. Try running the game on a local server:
+            </p>
+            <pre>
+# Using Python 3
+python -m http.server
+
+# Using Node.js
+npx http-server</pre>
+            <p>Then access the game at <code>http://localhost:8000</code> or similar.</p>
+        </div>
+        
+        <div class="section">
+            <h2>Contact Support</h2>
+            <p>
+                If you've tried all the above steps and still can't get the game working, please contact
+                support with details about your issue, including:
+            </p>
+            <ul>
+                <li>Browser name and version</li>
+                <li>Device type (desktop/mobile)</li>
+                <li>Error messages from the console</li>
+                <li>A screenshot of the issue</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 
