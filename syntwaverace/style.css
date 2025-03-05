@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #120023;
+    color: #ff41e9;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, #fd1d53, #fc8f7e, #833ab4);
+}
+
+#hud {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 36px;
+    font-weight: bold;
+    color: #00fff9;
+    text-shadow: 0 0 10px #00fff9, 0 0 20px #00fff9, 0 0 30px #00fff9;
+    z-index: 10;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #00fff9;
+    box-shadow: 0 0 15px #00fff9;
+}
+
+#track-display {
+    font-size: 24px;
+    margin-top: 10px;
+    color: #ff41e9;
+    text-shadow: 0 0 10px #ff41e9, 0 0 15px #ff41e9;
+}
+
+#current-track {
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+#music-controls {
+    font-size: 18px;
+    margin-top: 10px;
+    color: #ffcc00;
+    text-shadow: 0 0 8px #ffcc00, 0 0 12px #ffcc00;
+    opacity: 0.8;
+}
+
+#title-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(18, 0, 35, 0.8);
+    z-index: 20;
+}
+
+#title-screen h1 {
+    font-size: 72px;
+    margin-bottom: 40px;
+    color: #ff41e9;
+    text-shadow: 0 0 20px #ff41e9, 0 0 40px #ff41e9;
+    letter-spacing: 5px;
+}
+
+#start-button {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    padding: 15px 40px;
+    background-color: transparent;
+    border: 3px solid #00fff9;
+    color: #00fff9;
+    text-shadow: 0 0 10px #00fff9;
+    box-shadow: 0 0 20px #00fff9;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#start-button:hover {
+    background-color: #00fff9;
+    color: #120023;
+    box-shadow: 0 0 30px #00fff9;
+} 
