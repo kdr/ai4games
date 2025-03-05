@@ -6,8 +6,8 @@ const FLOOR_HEIGHT = 80;
 const ROUND_TIME = 60;
 const PLAYER_WIDTH = 50;
 const PLAYER_HEIGHT = 100;
-const LIMB_WIDTH = 20;
-const LIMB_HEIGHT = 40;
+const LIMB_WIDTH = 25;
+const LIMB_HEIGHT = 50;
 
 // Game state variables
 let canvas, ctx;
@@ -18,6 +18,7 @@ let roundsWon = { player1: 0, player2: 0 };
 let timer = ROUND_TIME;
 let timerInterval;
 let bgMusic;
+let particles = []; // Array to hold visual effect particles
 
 // DOM elements
 const gameMessage = document.getElementById('game-message');
@@ -143,6 +144,9 @@ function gameLoop() {
     // Draw background (dojo)
     drawBackground();
     
+    // Draw floor
+    drawFloor();
+    
     // Update and draw players if game is active
     if (gameActive) {
         // Update player positions and states
@@ -151,14 +155,25 @@ function gameLoop() {
         
         // Check for attacks and collisions
         checkAttacks();
+        
+        // Update particles
+        updateParticles();
     }
     
-    // Draw players
+    // Draw players (bodies only)
     drawPlayer(player1);
     drawPlayer(player2);
     
-    // Draw floor
-    drawFloor();
+    // ALWAYS draw attack limbs last to ensure visibility
+    if (player1.attacking) {
+        drawAttackLimb(player1);
+    }
+    if (player2.attacking) {
+        drawAttackLimb(player2);
+    }
+    
+    // Draw particles
+    drawParticles();
     
     // Continue the game loop
     requestAnimationFrame(gameLoop);
@@ -197,6 +212,10 @@ function updatePlayer(player) {
             player.attacking = true;
             player.attackType = 'punch';
             player.attackCooldown = 20;
+            
+            // Create particles for visual effect
+            createAttackParticles(player, 'punch');
+            
             setTimeout(() => {
                 player.attacking = false;
             }, 200);
@@ -204,6 +223,10 @@ function updatePlayer(player) {
             player.attacking = true;
             player.attackType = 'kick';
             player.attackCooldown = 30;
+            
+            // Create particles for visual effect
+            createAttackParticles(player, 'kick');
+            
             setTimeout(() => {
                 player.attacking = false;
             }, 300);
@@ -285,6 +308,10 @@ function updateAI(ai) {
         ai.attacking = true;
         ai.attackType = Math.random() < 0.5 ? 'punch' : 'kick';
         ai.attackCooldown = 30;
+        
+        // Create particles for visual effect
+        createAttackParticles(ai, ai.attackType);
+        
         setTimeout(() => {
             ai.attacking = false;
         }, 300);
@@ -315,13 +342,19 @@ function updateAI(ai) {
 function checkAttacks() {
     // Check player1 attacking player2
     if (player1.attacking && arePlayersInRange(player1, player2)) {
-        if (!player2.isBlocking) {
+        // Check if player2 is blocking effectively
+        const effectiveBlock = player2.isBlocking && isBlockingEffective(player2, player1);
+        
+        if (!effectiveBlock) {
             // Apply damage based on attack type
             const damage = player1.attackType === 'punch' ? 5 : 10;
             player2.health -= damage;
             
             // Knockback
             player2.velocity.x = 8;
+            
+            // Visual hit effect
+            createHitParticles(player2.x, player2.y + player2.height/2);
             
             // Check for round end
             if (player2.health <= 0) {
@@ -336,13 +369,19 @@ function checkAttacks() {
     
     // Check player2 attacking player1
     if (player2.attacking && arePlayersInRange(player2, player1)) {
-        if (!player1.isBlocking) {
+        // Check if player1 is blocking effectively
+        const effectiveBlock = player1.isBlocking && isBlockingEffective(player1, player2);
+        
+        if (!effectiveBlock) {
             // Apply damage based on attack type
             const damage = player2.attackType === 'punch' ? 5 : 10;
             player1.health -= damage;
             
             // Knockback
             player1.velocity.x = -8;
+            
+            // Visual hit effect
+            createHitParticles(player1.x, player1.y + player1.height/2);
             
             // Check for round end
             if (player1.health <= 0) {
@@ -357,6 +396,18 @@ function checkAttacks() {
     
     // Update UI
     updateHealthBars();
+}
+
+// Check if blocking is effective based on facing direction
+function isBlockingEffective(defender, attacker) {
+    // Blocking is only effective if facing toward the attacker
+    if (defender.facingRight) {
+        // Defender is facing right, so attacker must be on the right
+        return attacker.x > defender.x;
+    } else {
+        // Defender is facing left, so attacker must be on the left
+        return attacker.x < defender.x;
+    }
 }
 
 // Check if players are in attack range
@@ -403,7 +454,7 @@ function drawFloor() {
 }
 
 // Draw a player
-function drawPlayer(player) {
+function drawPlayer(player, drawAttacks = true) {
     // Draw body
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.width, player.height);
@@ -424,26 +475,72 @@ function drawPlayer(player) {
     
     // Draw blocking stance
     if (player.isBlocking) {
-        ctx.fillStyle = '#888';
+        // Calculate if block would be effective against the other player
+        const otherPlayer = player.isPlayer1 ? player2 : player1;
+        const effectiveBlock = isBlockingEffective(player, otherPlayer);
+        
+        // Use different color for effective vs ineffective block
+        ctx.fillStyle = effectiveBlock ? '#4CAF50' : '#FF5722'; // Green for effective, orange for ineffective
+        
         const blockX = player.facingRight ? player.x + player.width : player.x - 10;
         ctx.fillRect(blockX, player.y + 20, 10, 60);
-        return; // Don't draw limbs when blocking
+        
+        // If the block is ineffective, show a visual warning
+        if (!effectiveBlock) {
+            ctx.fillStyle = '#FF0000';
+            const warningX = player.facingRight ? player.x - 15 : player.x + player.width + 5;
+            ctx.beginPath();
+            ctx.moveTo(warningX, player.y + 30);
+            ctx.lineTo(warningX + 10, player.y + 40);
+            ctx.lineTo(warningX, player.y + 50);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        return; // Don't draw attack limbs when blocking
     }
     
-    // Draw attacking limbs, respecting player direction
-    if (player.attacking) {
-        ctx.fillStyle = '#FF0';
-        
-        if (player.attackType === 'punch') {
-            // Punch (arm extension)
-            const punchX = player.facingRight ? player.x + player.width : player.x - LIMB_WIDTH;
-            ctx.fillRect(punchX, player.y + 20, LIMB_WIDTH, LIMB_HEIGHT/2);
-        } else if (player.attackType === 'kick') {
-            // Kick (leg extension)
-            const kickX = player.facingRight ? player.x + player.width : player.x - LIMB_WIDTH;
-            ctx.fillRect(kickX, player.y + 70, LIMB_WIDTH, LIMB_HEIGHT/2);
-        }
+    // Draw attacking limbs - now moved to separate function
+}
+
+// Function to draw attack limbs separately
+function drawAttackLimb(player) {
+    // Use bright colors with outlines for limbs
+    let limbX, limbY, limbWidth, limbHeight;
+    
+    if (player.attackType === 'punch') {
+        // Punch (arm extension)
+        limbWidth = LIMB_WIDTH;
+        limbHeight = LIMB_HEIGHT/2;
+        limbY = player.y + 20;
+        limbX = player.facingRight ? player.x + player.width : player.x - limbWidth;
+    } else if (player.attackType === 'kick') {
+        // Kick (leg extension)
+        limbWidth = LIMB_WIDTH;
+        limbHeight = LIMB_HEIGHT/2;
+        limbY = player.y + 70;
+        limbX = player.facingRight ? player.x + player.width : player.x - limbWidth;
+    } else {
+        return; // No attack type specified
     }
+    
+    // Draw with a prominent outline
+    ctx.fillStyle = player.isPlayer1 ? '#FF5000' : '#00AAFF'; // Orange for player 1, Blue for player 2
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    
+    // Force limbs to be on top with higher z-index
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0;
+    
+    // Draw the filled rectangle with an outline
+    ctx.fillRect(limbX, limbY, limbWidth, limbHeight);
+    ctx.strokeRect(limbX, limbY, limbWidth, limbHeight);
+    
+    // Reset drawing settings
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0;
+    ctx.lineWidth = 1;
 }
 
 // Handle key down events
@@ -586,4 +683,93 @@ function getRandomColor() {
         color += letters[Math.floor(Math.random() * 16)];
     }
     return color;
+}
+
+// Create particles for attack visualization
+function createAttackParticles(player, attackType) {
+    const particleCount = attackType === 'punch' ? 5 : 8;
+    const particleSize = attackType === 'punch' ? 4 : 6;
+    const particleSpeed = attackType === 'punch' ? 3 : 4;
+    const particleColor = player.isPlayer1 ? '#FF5000' : '#00AAFF';
+    
+    // Calculate position for particles based on attack type and player direction
+    let posX, posY;
+    if (attackType === 'punch') {
+        posY = player.y + 20 + LIMB_HEIGHT/4;
+        posX = player.facingRight ? player.x + player.width + LIMB_WIDTH/2 : player.x - LIMB_WIDTH/2;
+    } else { // kick
+        posY = player.y + 70 + LIMB_HEIGHT/4;
+        posX = player.facingRight ? player.x + player.width + LIMB_WIDTH/2 : player.x - LIMB_WIDTH/2;
+    }
+    
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+        const angle = player.facingRight ? 
+            Math.random() * Math.PI/2 - Math.PI/4 : 
+            Math.random() * Math.PI/2 + Math.PI/4 * 3;
+        
+        const speedX = Math.cos(angle) * particleSpeed * (Math.random() + 0.5);
+        const speedY = Math.sin(angle) * particleSpeed * (Math.random() + 0.5);
+        
+        particles.push({
+            x: posX,
+            y: posY,
+            vx: speedX,
+            vy: speedY,
+            size: particleSize * Math.random() + particleSize/2,
+            color: particleColor,
+            life: 15 + Math.random() * 10
+        });
+    }
+}
+
+// Create particles for hit effects
+function createHitParticles(x, y) {
+    const particleCount = 12;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 3;
+        
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 3 + Math.random() * 5,
+            color: '#FFFFFF',
+            life: 20 + Math.random() * 10
+        });
+    }
+}
+
+// Update particles
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        
+        // Remove dead particles
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+}
+
+// Draw particles
+function drawParticles() {
+    for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life / 30; // Fade out as life decreases
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    ctx.globalAlpha = 1.0; // Reset alpha
 } 

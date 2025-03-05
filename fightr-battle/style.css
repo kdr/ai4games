@@ -143,4 +143,19 @@ canvas {
     padding: 5px 10px;
     border-radius: 5px;
     z-index: 3;
+}
+
+#block-info {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #FF5722;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+    z-index: 3;
 } 
