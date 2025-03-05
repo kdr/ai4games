@@ -12,6 +12,27 @@ let speedLines = []; // Array to hold speed line objects
 let roadsideObjects = []; // Array to hold roadside objects
 let brakeLights = []; // Array to hold brake light objects and their glows
 
+// Audio variables
+let audioContext;
+let bgMusic = {
+  neonRush: null,
+  sunSet: null,
+  currentTrack: null,
+  trackNames: {
+    neonRush: "NEON RUSH",
+    sunSet: "SUN SET"
+  },
+  switchInterval: 120000, // Switch tracks every 2 minutes (milliseconds)
+  lastSwitchTime: 0,
+  isLoaded: false,
+  source: null,
+  isMuted: false, // Start with music enabled
+  audioElements: {
+    neonRush: null,
+    sunSet: null
+  }
+};
+
 // Road config
 const roadWidth = 2000;
 const roadLength = 10000;
@@ -40,6 +61,9 @@ const colors = {
 function init() {
   // Set up Three.js scene
   scene = new THREE.Scene();
+  
+  // Initialize audio
+  initAudio();
   
   // Create sky gradient like in reference image (pink to purple)
   const skyGeometry = new THREE.SphereGeometry(15000, 32, 32);
@@ -137,6 +161,274 @@ function init() {
 
   // Initial render
   renderer.render(scene, camera);
+}
+
+// Initialize audio system
+function initAudio() {
+  try {
+    // Create audio context
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    console.log('Loading audio tracks...');
+    document.getElementById('current-track').textContent = "LOADING...";
+    
+    // Load tracks both ways for better compatibility across browsers
+    // Method 1: Using XMLHttpRequest and AudioContext
+    loadAudioTrack('neonrush.mp3', 'neonRush');
+    loadAudioTrack('sunset.mp3', 'sunSet');
+    
+    // Method 2: Using HTML5 Audio elements
+    // This provides a fallback method that works better in some browsers
+    const neonRushAudio = new Audio('neonrush.mp3');
+    const sunSetAudio = new Audio('sunset.mp3');
+    
+    neonRushAudio.loop = true;
+    sunSetAudio.loop = true;
+    
+    // Store the elements
+    bgMusic.audioElements.neonRush = neonRushAudio;
+    bgMusic.audioElements.sunSet = sunSetAudio;
+    
+    // Create load event listeners
+    let loadedCount = 0;
+    const totalToLoad = 2;
+    
+    const markAsLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= totalToLoad) {
+        console.log('All audio elements loaded');
+        bgMusic.isLoaded = true;
+        // Don't update the display here, let the game start handle it
+      }
+    };
+    
+    neonRushAudio.addEventListener('canplaythrough', markAsLoaded);
+    sunSetAudio.addEventListener('canplaythrough', markAsLoaded);
+    
+    // Preload the audio
+    neonRushAudio.load();
+    sunSetAudio.load();
+    
+  } catch (e) {
+    console.error('Audio initialization failed:', e);
+    document.getElementById('current-track').textContent = "NO AUDIO";
+  }
+}
+
+// Load an audio track from file
+function loadAudioTrack(filename, trackKey) {
+  console.log(`Loading track: ${filename}`);
+  const request = new XMLHttpRequest();
+  request.open('GET', filename, true);
+  request.responseType = 'arraybuffer';
+  
+  request.onload = function() {
+    console.log(`File loaded: ${filename}, decoding...`);
+    
+    audioContext.decodeAudioData(
+      request.response, 
+      function(buffer) {
+        console.log(`Successfully decoded: ${filename}`);
+        bgMusic[trackKey] = buffer;
+      }, 
+      function(error) {
+        console.error(`Error decoding audio data for ${filename}:`, error);
+      }
+    );
+  };
+  
+  request.onerror = function() {
+    console.error(`Error loading audio file: ${filename}`);
+  };
+  
+  request.send();
+}
+
+// Play a track
+function playTrack(trackKey) {
+  if (bgMusic.isMuted) {
+    console.log('Music is muted, not playing');
+    return;
+  }
+  
+  console.log(`Attempting to play track: ${trackKey}`);
+  
+  // Try playing using HTML5 Audio API first (more reliable in some browsers)
+  if (bgMusic.audioElements[trackKey]) {
+    try {
+      // Stop all audio elements first
+      Object.values(bgMusic.audioElements).forEach(audio => {
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+      
+      // Make sure we're at the start of the track
+      bgMusic.audioElements[trackKey].currentTime = 0;
+      
+      // Play the selected track - with user interaction promise handling
+      const playPromise = bgMusic.audioElements[trackKey].play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log(`Now playing: ${bgMusic.trackNames[trackKey]}`);
+          bgMusic.currentTrack = trackKey;
+          bgMusic.lastSwitchTime = Date.now();
+          updateTrackDisplay();
+        }).catch(err => {
+          console.error('Error playing HTML5 Audio:', err);
+          
+          // If we get a user interaction error, try playing on the next user interaction
+          if (err.name === 'NotAllowedError') {
+            console.log('Browser requires user interaction, will try again on next interaction');
+            document.getElementById('current-track').textContent = "Press M to play music";
+            
+            // Set up a one-time event listener for the next user interaction
+            const playOnInteraction = () => {
+              bgMusic.audioElements[trackKey].play().catch(e => {
+                console.error('Still cannot play audio:', e);
+              });
+              document.removeEventListener('click', playOnInteraction);
+              document.removeEventListener('keydown', playOnInteraction);
+            };
+            
+            document.addEventListener('click', playOnInteraction, { once: true });
+            document.addEventListener('keydown', playOnInteraction, { once: true });
+          } else {
+            // Fall back to Web Audio API method for other errors
+            playTrackWithWebAudio(trackKey);
+          }
+        });
+      } else {
+        // For browsers that don't return a promise
+        console.log(`Now playing: ${bgMusic.trackNames[trackKey]}`);
+        bgMusic.currentTrack = trackKey;
+        bgMusic.lastSwitchTime = Date.now();
+        updateTrackDisplay();
+      }
+      
+      return;
+    } catch (e) {
+      console.error('Error with HTML5 Audio playback:', e);
+      // Fall back to Web Audio API method
+    }
+  }
+  
+  // Fallback to Web Audio API
+  playTrackWithWebAudio(trackKey);
+}
+
+// Play a track using Web Audio API
+function playTrackWithWebAudio(trackKey) {
+  if (!bgMusic[trackKey]) {
+    console.error(`Track not loaded: ${trackKey}`);
+    return;
+  }
+  
+  try {
+    console.log(`Playing track with Web Audio API: ${trackKey}`);
+    
+    // Stop current track if playing
+    if (bgMusic.source) {
+      bgMusic.source.stop();
+      bgMusic.source.disconnect();
+      bgMusic.source = null;
+    }
+  
+    // Create a new source node
+    const source = audioContext.createBufferSource();
+    source.buffer = bgMusic[trackKey];
+    
+    // Connect to audio context
+    source.connect(audioContext.destination);
+    
+    // Loop the track
+    source.loop = true;
+    
+    // Start playing
+    source.start(0);
+    
+    // Update current track
+    bgMusic.currentTrack = trackKey;
+    bgMusic.source = source;
+    bgMusic.lastSwitchTime = Date.now();
+    
+    // Update HUD
+    updateTrackDisplay();
+    
+    console.log(`Now playing: ${bgMusic.trackNames[trackKey]}`);
+  } catch (e) {
+    console.error('Error playing track with Web Audio API:', e);
+  }
+}
+
+// Update the track display in the HUD
+function updateTrackDisplay() {
+  const trackDisplay = document.getElementById('current-track');
+  
+  if (!bgMusic.currentTrack) {
+    trackDisplay.textContent = "--";
+    return;
+  }
+  
+  if (bgMusic.isMuted) {
+    trackDisplay.textContent = "MUTED";
+  } else {
+    trackDisplay.textContent = bgMusic.trackNames[bgMusic.currentTrack];
+  }
+}
+
+// Toggle music on/off
+function toggleMusic() {
+  if (!audioContext) {
+    console.log('Audio context not created, cannot toggle');
+    return;
+  }
+  
+  // Always make sure the audio context is running
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+  
+  console.log('Toggle music called, current state:', bgMusic.isMuted ? 'muted' : 'playing');
+  
+  if (bgMusic.isMuted) {
+    // Unmute - start playing again
+    console.log('Unmuting music');
+    bgMusic.isMuted = false;
+    
+    if (bgMusic.currentTrack) {
+      playTrack(bgMusic.currentTrack);
+    } else {
+      playTrack('neonRush');
+    }
+  } else {
+    // Mute - stop current playback
+    console.log('Muting music');
+    bgMusic.isMuted = true;
+    
+    // Stop Web Audio API playback
+    if (bgMusic.source) {
+      try {
+        bgMusic.source.stop();
+        bgMusic.source.disconnect();
+        bgMusic.source = null;
+      } catch (e) {
+        console.error('Error stopping Web Audio track:', e);
+      }
+    }
+    
+    // Stop HTML5 Audio playback
+    Object.values(bgMusic.audioElements).forEach(audio => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+  }
+  
+  updateTrackDisplay();
 }
 
 // Create grid floor
@@ -768,6 +1060,54 @@ function startGame() {
   document.getElementById('title-screen').style.display = 'none';
   document.addEventListener('keydown', handleKeyDown);
   document.addEventListener('keyup', handleKeyUp);
+  
+  // Handle audio
+  if (audioContext) {
+    // Resume audio context (required for Chrome and Safari due to autoplay policies)
+    audioContext.resume().then(() => {
+      console.log('Audio context resumed successfully');
+      
+      // Attempt to play music immediately
+      if (bgMusic.isLoaded) {
+        console.log('Tracks loaded, playing initial track');
+        try {
+          // Make sure music isn't muted
+          bgMusic.isMuted = false;
+          playTrack('neonRush');
+        } catch (e) {
+          console.error('Error starting initial track:', e);
+          document.getElementById('current-track').textContent = "Press M to play music";
+        }
+      } else {
+        console.log('Tracks not loaded yet, waiting...');
+        document.getElementById('current-track').textContent = "LOADING...";
+        
+        // Check every second if tracks are loaded
+        const checkInterval = setInterval(() => {
+          if (bgMusic.isLoaded) {
+            console.log('Tracks loaded, playing initial track');
+            try {
+              // Make sure music isn't muted
+              bgMusic.isMuted = false;
+              playTrack('neonRush');
+              clearInterval(checkInterval);
+            } catch (e) {
+              console.error('Error starting initial track:', e);
+              document.getElementById('current-track').textContent = "Press M to play music";
+              clearInterval(checkInterval);
+            }
+          }
+        }, 500);
+      }
+    }).catch(err => {
+      console.error('Failed to resume audio context:', err);
+      document.getElementById('current-track').textContent = "Press M to play music";
+    });
+  } else {
+    console.error('Audio context not created');
+    document.getElementById('current-track').textContent = "NO AUDIO";
+  }
+  
   gameLoop = requestAnimationFrame(update);
 }
 
@@ -783,6 +1123,21 @@ const keyStates = {
 function handleKeyDown(event) {
   if (keyStates.hasOwnProperty(event.key)) {
     keyStates[event.key] = true;
+  }
+  
+  // Music controls - only when game has started
+  if (isGameStarted) {
+    // M key - toggle music on/off
+    if (event.key === 'm' || event.key === 'M') {
+      toggleMusic();
+    }
+    
+    // N key - next track
+    if (event.key === 'n' || event.key === 'N') {
+      if (!bgMusic.isMuted && bgMusic.isLoaded) {
+        switchTrack();
+      }
+    }
   }
 }
 
@@ -883,6 +1238,11 @@ function update() {
 
   // Update roadside objects
   updateRoadsideObjects();
+
+  // Check if it's time to switch tracks
+  if (bgMusic.source && Date.now() - bgMusic.lastSwitchTime > bgMusic.switchInterval) {
+    switchTrack();
+  }
 
   // Update speed display
   updateSpeedDisplay();
@@ -1102,6 +1462,39 @@ function updateBrakeLightsIntensity(isBraking) {
       brakeLight.glow.material.color.set(0xff00ff);
     }
   });
+}
+
+// Switch to the next track
+function switchTrack() {
+  console.log('Switching tracks...');
+  
+  if (bgMusic.isMuted) {
+    console.log('Music is muted, not switching');
+    return;
+  }
+  
+  // Stop current track if playing with Web Audio API
+  if (bgMusic.source) {
+    try {
+      bgMusic.source.stop();
+      bgMusic.source.disconnect();
+      bgMusic.source = null;
+    } catch (e) {
+      console.error('Error stopping Web Audio track:', e);
+    }
+  }
+  
+  // Stop any playing HTML5 Audio elements
+  Object.values(bgMusic.audioElements).forEach(audio => {
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  });
+  
+  // Switch to the other track
+  const nextTrack = bgMusic.currentTrack === 'neonRush' ? 'sunSet' : 'neonRush';
+  playTrack(nextTrack);
 }
 
 // Initialize the game when the page loads

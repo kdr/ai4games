@@ -42,6 +42,26 @@ body {
     box-shadow: 0 0 15px #00fff9;
 }
 
+#track-display {
+    font-size: 24px;
+    margin-top: 10px;
+    color: #ff41e9;
+    text-shadow: 0 0 10px #ff41e9, 0 0 15px #ff41e9;
+}
+
+#current-track {
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+#music-controls {
+    font-size: 18px;
+    margin-top: 10px;
+    color: #ffcc00;
+    text-shadow: 0 0 8px #ffcc00, 0 0 12px #ffcc00;
+    opacity: 0.8;
+}
+
 #title-screen {
     position: absolute;
     top: 0;
