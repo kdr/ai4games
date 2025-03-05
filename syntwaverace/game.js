@@ -23,24 +23,59 @@ const gridSize = 20000;
 const gridDivisions = 100;
 
 // Camera config
-const cameraHeight = 200;
-const cameraDistance = 500;
+const cameraHeight = 40;
+const cameraDistance = 120;
 
 // Colors
 const colors = {
-  sky: 0x120023,
+  sky: 0xff5588, // Pink sky like in reference
   grid: 0xff41e9,
-  road: 0x111111,
+  road: 0x000000, // Pure black road
   rumble: 0xffffff,
-  lane: 0xffff00
+  lane: 0xff3333 // Red lane markers like in the reference image
 };
 
 // Initialize the game
 function init() {
   // Set up Three.js scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(colors.sky);
-  scene.fog = new THREE.Fog(colors.sky, 2000, 15000);
+  
+  // Create sky gradient like in reference image (pink to purple)
+  const skyGeometry = new THREE.SphereGeometry(15000, 32, 32);
+  // Use shader material for gradient sky
+  const skyMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      topColor: { value: new THREE.Color(0xff99aa) },    // Light pink at top
+      bottomColor: { value: new THREE.Color(0x330066) }, // Deep purple at bottom
+      offset: { value: 400 },
+      exponent: { value: 0.6 }
+    },
+    vertexShader: `
+      varying vec3 vWorldPosition;
+      void main() {
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vWorldPosition = worldPosition.xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 topColor;
+      uniform vec3 bottomColor;
+      uniform float offset;
+      uniform float exponent;
+      varying vec3 vWorldPosition;
+      void main() {
+        float h = normalize(vWorldPosition + offset).y;
+        gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+      }
+    `,
+    side: THREE.BackSide
+  });
+  
+  const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+  scene.add(sky);
+  
+  scene.fog = new THREE.Fog(0xff5588, 2000, 15000); // Pink fog
 
   // Set up camera
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 30000);
@@ -183,34 +218,51 @@ function createRoad() {
     road.add(roadSegment);
     roadSegments.push(roadSegment);
 
-    // Rumble strips
+    // Side rumble strips - white
     if (Math.floor(z / segmentLength) % rumbleLength < Math.floor(rumbleLength / 2)) {
       const leftRumble = new THREE.Mesh(
-        new THREE.PlaneGeometry(laneWidth / 4, segmentLength),
+        new THREE.PlaneGeometry(laneWidth / 6, segmentLength),
         new THREE.MeshBasicMaterial({ color: colors.rumble })
       );
       leftRumble.rotation.x = -Math.PI / 2;
-      leftRumble.position.set(-roadWidth / 2 + laneWidth / 8, 0.02, -z - segmentLength / 2);
+      leftRumble.position.set(-roadWidth / 2 + laneWidth / 12, 0.02, -z - segmentLength / 2);
       road.add(leftRumble);
 
       const rightRumble = new THREE.Mesh(
-        new THREE.PlaneGeometry(laneWidth / 4, segmentLength),
+        new THREE.PlaneGeometry(laneWidth / 6, segmentLength),
         new THREE.MeshBasicMaterial({ color: colors.rumble })
       );
       rightRumble.rotation.x = -Math.PI / 2;
-      rightRumble.position.set(roadWidth / 2 - laneWidth / 8, 0.02, -z - segmentLength / 2);
+      rightRumble.position.set(roadWidth / 2 - laneWidth / 12, 0.02, -z - segmentLength / 2);
       road.add(rightRumble);
     }
 
-    // Lane markers
+    // Center line - bright red like in reference image
     if (z % (segmentLength * 2) === 0) {
-      const laneLine = new THREE.Mesh(
-        new THREE.PlaneGeometry(laneWidth / 8, segmentLength / 2),
-        new THREE.MeshBasicMaterial({ color: colors.lane })
+      const centerLine = new THREE.Mesh(
+        new THREE.PlaneGeometry(laneWidth / 8, segmentLength),
+        new THREE.MeshBasicMaterial({ 
+          color: 0xff0000, // Bright red centerline
+          emissive: 0xff0000,
+          transparent: true,
+          opacity: 0.9
+        })
       );
-      laneLine.rotation.x = -Math.PI / 2;
-      laneLine.position.set(0, 0.02, -z - segmentLength / 2);
-      road.add(laneLine);
+      centerLine.rotation.x = -Math.PI / 2;
+      centerLine.position.set(0, 0.03, -z - segmentLength / 2);
+      road.add(centerLine);
+      
+      // Create a subtle glow effect for the center line
+      const glowGeometry = new THREE.PlaneGeometry(laneWidth / 4, segmentLength);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.3
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      glow.rotation.x = -Math.PI / 2;
+      glow.position.set(0, 0.025, -z - segmentLength / 2);
+      road.add(glow);
     }
   }
 }
@@ -311,10 +363,10 @@ function createCar() {
 
 // Create synthwave sun
 function createSynthwaveSun() {
-  // Main sun - MUCH larger and closer now
+  // Main sun - yellow-white like in reference image
   const sunGeometry = new THREE.CircleGeometry(3000, 64);
   const sunMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xff1493, // Hot pink
+    color: 0xffee66, // More yellow like in the reference image
     transparent: true,
     opacity: 1.0 // Full opacity
   });
@@ -322,10 +374,10 @@ function createSynthwaveSun() {
   sun.position.set(0, 400, -6000); // Bringing it closer and lower
   scene.add(sun);
 
-  // Inner glow - larger
+  // Inner glow - larger with warm color
   const innerGlowGeometry = new THREE.CircleGeometry(3200, 64);
   const innerGlowMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xff41e9, // Brighter pink
+    color: 0xffbb33, // Warmer orange glow
     transparent: true,
     opacity: 0.8 // More visible
   });
@@ -333,10 +385,10 @@ function createSynthwaveSun() {
   innerGlow.position.set(0, 400, -6010);
   scene.add(innerGlow);
 
-  // Outer glow (cyan) - larger
+  // Outer glow - pinkish like sky in reference
   const outerGlowGeometry = new THREE.CircleGeometry(3500, 64);
   const outerGlowMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0x00fff9, // Cyan
+    color: 0xff9999, // Pinkish glow
     transparent: true,
     opacity: 0.6 // More visible
   });
@@ -457,15 +509,16 @@ function addSunReflection() {
 
 // Add decorative elements
 function addDecorations() {
-  // Add palm trees and neon structures along the road
-  for (let i = 0; i < 20; i++) {
+  // Create two rows of palm trees along the road sides (like in reference image)
+  createPalmTreeRows();
+  
+  // Add some random neon structures for variety
+  for (let i = 0; i < 15; i++) {
     // Left side
-    addPalmTree(-roadWidth - 200 - Math.random() * 500, 0, -i * 500 - Math.random() * 200);
-    addNeonStructure(-roadWidth - 100 - Math.random() * 300, 0, -i * 800 - Math.random() * 400);
+    addNeonStructure(-roadWidth - 300 - Math.random() * 200, 0, -i * 1200 - Math.random() * 400);
     
     // Right side
-    addPalmTree(roadWidth + 200 + Math.random() * 500, 0, -i * 500 - Math.random() * 200);
-    addNeonStructure(roadWidth + 100 + Math.random() * 300, 0, -i * 800 - Math.random() * 400);
+    addNeonStructure(roadWidth + 300 + Math.random() * 200, 0, -i * 1200 - Math.random() * 400);
   }
   
   // Add prominent palm trees along the horizon to match reference image
@@ -483,6 +536,74 @@ function addDecorations() {
     // Right side of horizon
     const rightX = i * spacing + 2000;
     addLargePalmTree(rightX, 0, horizonDistance);
+  }
+}
+
+// Create rows of palm trees along the road sides
+function createPalmTreeRows() {
+  // Distance between palm trees
+  const spacing = 300;
+  // How many palm trees in each row
+  const treeCount = 30;
+  // Distance from the road edge
+  const roadOffset = 120;
+  
+  // Left row of palm trees
+  for (let i = 0; i < treeCount; i++) {
+    const z = -i * spacing - 500; // Start a bit ahead and go down the road
+    addRoadsidePalm(-roadWidth/2 - roadOffset, 0, z, true);
+  }
+  
+  // Right row of palm trees
+  for (let i = 0; i < treeCount; i++) {
+    const z = -i * spacing - 500;
+    addRoadsidePalm(roadWidth/2 + roadOffset, 0, z, false);
+  }
+}
+
+// Create a palm tree specifically for the roadside (larger and more visible)
+function addRoadsidePalm(x, y, z, isLeft) {
+  // Use black for pure silhouette as in reference image
+  const palmColor = 0x000000;
+  
+  // Much taller trunk
+  const trunkGeometry = new THREE.BoxGeometry(30, 400, 30);
+  const trunkMaterial = new THREE.MeshBasicMaterial({ 
+    color: palmColor,
+    transparent: false,
+    opacity: 1.0
+  });
+  const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+  trunk.position.set(x, y + 200, z);
+  scene.add(trunk);
+  roadsideObjects.push(trunk); // Add to roadside objects to recycle them
+
+  // Create proper palm fronds
+  const frondCount = 16; // More fronds for fuller palm
+  
+  for (let i = 0; i < frondCount; i++) {
+    // Longer, thinner fronds
+    const frondLength = 300;
+    const frondGeometry = new THREE.BoxGeometry(frondLength, 6, 15);
+    const frondMaterial = new THREE.MeshBasicMaterial({ 
+      color: palmColor,
+      transparent: false,
+      opacity: 1.0
+    });
+    
+    const frond = new THREE.Mesh(frondGeometry, frondMaterial);
+    frond.position.set(x, y + 400, z); // Position at top of trunk
+    
+    // Fan the fronds out in a circle
+    const angle = (i / frondCount) * Math.PI * 2;
+    frond.rotation.z = angle;
+    
+    // Add a slight droop to the fronds
+    frond.rotation.y = isLeft ? 0.2 : -0.2; // Angle slightly toward the road
+    frond.rotation.x = 0.3; // Droop down slightly
+    
+    scene.add(frond);
+    roadsideObjects.push(frond); // Add to roadside objects to recycle them
   }
 }
 
@@ -674,22 +795,24 @@ function update() {
   const gridSpeedMultiplier = 1 + speedFactor * 0.5; // Grid moves up to 1.5x faster at max speed
   grid.position.z = (grid.position.z + speed * gridSpeedMultiplier) % gridDivisions;
 
-  // Update camera - add subtle forward/backward movement based on acceleration/deceleration
-  const cameraZOffset = cameraDistance - (100 * speedFactor); // Camera gets closer at higher speeds
+  // Update camera position for a low-angle shot from behind the car (like reference image)
+  const cameraZOffset = cameraDistance;
+  const lowOffset = 25; // Position the camera much lower
+  
   camera.position.set(
-    car.position.x / 3, // Less horizontal movement to keep sun stable
-    cameraHeight + 50,
-    car.position.z + cameraZOffset
+    car.position.x * 0.3, // Slightly offset from car for better view
+    lowOffset, // Very low camera
+    car.position.z + cameraZOffset // Close behind the car
   );
   
-  // Adjust camera field of view for speed effect - wider FOV at higher speeds
-  camera.fov = 75 + (speedFactor * 15); // FOV ranges from 75 to 90 degrees
+  // Adjust camera field of view for speed effect
+  camera.fov = 70 + (speedFactor * 10); // Narrower FOV for more cinematic look
   camera.updateProjectionMatrix();
   
-  // Smoother camera look-ahead
-  const lookPointZ = car.position.z - 2000;
-  const lookPointY = 250;
-  camera.lookAt(car.position.x / 4, lookPointY, lookPointZ);
+  // Point camera slightly up to see the sun and palm trees
+  const lookPointZ = car.position.z - 1000; // Look ahead down the road
+  const lookPointY = 200 + (speedFactor * 50); // Look up to see the sun
+  camera.lookAt(car.position.x * 0.2, lookPointY, lookPointZ);
   
   // Update speed lines
   updateSpeedLines(speedFactor);
