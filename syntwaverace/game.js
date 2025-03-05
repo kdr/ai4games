@@ -57,10 +57,28 @@ const colors = {
   lane: 0xff3333 // Red lane markers like in the reference image
 };
 
+// Key states
+const keyStates = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false
+};
+
+// Touch control variables
+let isTouching = false;
+let touchStartX = 0;
+let touchCurrentX = 0;
+
 // Initialize the game
 function init() {
   // Set up Three.js scene
   scene = new THREE.Scene();
+  
+  // Prevent touch scrolling on the canvas
+  document.getElementById('game-canvas').addEventListener('touchmove', function(e) {
+    e.preventDefault();
+  }, { passive: false });
   
   // Initialize audio
   initAudio();
@@ -1057,9 +1075,21 @@ function onWindowResize() {
 // Start the game
 function startGame() {
   isGameStarted = true;
+  
+  // Show HUD
+  document.getElementById('hud').style.display = 'flex';
   document.getElementById('title-screen').style.display = 'none';
   document.addEventListener('keydown', handleKeyDown);
   document.addEventListener('keyup', handleKeyUp);
+  
+  // Add touch event listeners for mobile
+  const gameCanvas = document.getElementById('game-canvas');
+  gameCanvas.addEventListener('touchstart', handleTouchStart);
+  gameCanvas.addEventListener('touchmove', handleTouchMove);
+  gameCanvas.addEventListener('touchend', handleTouchEnd);
+  gameCanvas.addEventListener('mousedown', handleMouseDown);
+  gameCanvas.addEventListener('mousemove', handleMouseMove);
+  gameCanvas.addEventListener('mouseup', handleMouseUp);
   
   // Handle audio
   if (audioContext) {
@@ -1111,13 +1141,59 @@ function startGame() {
   gameLoop = requestAnimationFrame(update);
 }
 
-// Key states
-const keyStates = {
-  ArrowUp: false,
-  ArrowDown: false,
-  ArrowLeft: false,
-  ArrowRight: false
-};
+// Handle touch start event
+function handleTouchStart(event) {
+  event.preventDefault();
+  isTouching = true;
+  // Store initial touch position for steering calculation
+  touchStartX = event.touches[0].clientX;
+  touchCurrentX = touchStartX;
+}
+
+// Handle touch move event
+function handleTouchMove(event) {
+  event.preventDefault();
+  if (isTouching) {
+    // Update current touch position for steering calculation
+    touchCurrentX = event.touches[0].clientX;
+  }
+}
+
+// Handle touch end event
+function handleTouchEnd(event) {
+  event.preventDefault();
+  isTouching = false;
+  // Reset touch positions
+  touchStartX = 0;
+  touchCurrentX = 0;
+}
+
+// Handle mouse down event
+function handleMouseDown(event) {
+  event.preventDefault();
+  isTouching = true;
+  // Store initial mouse position for steering calculation
+  touchStartX = event.clientX;
+  touchCurrentX = touchStartX;
+}
+
+// Handle mouse move event
+function handleMouseMove(event) {
+  event.preventDefault();
+  if (isTouching) {
+    // Update current mouse position for steering calculation
+    touchCurrentX = event.clientX;
+  }
+}
+
+// Handle mouse up event
+function handleMouseUp(event) {
+  event.preventDefault();
+  isTouching = false;
+  // Reset touch positions
+  touchStartX = 0;
+  touchCurrentX = 0;
+}
 
 // Handle key down
 function handleKeyDown(event) {
@@ -1153,7 +1229,7 @@ function update() {
   if (!isGameStarted) return;
 
   // Handle acceleration/deceleration
-  if (keyStates.ArrowUp) {
+  if (keyStates.ArrowUp || isTouching) {
     speed = Math.min(maxSpeed, speed + acceleration);
     
     // Dim brake lights when accelerating
@@ -1174,6 +1250,7 @@ function update() {
 
   // Handle steering with car tilt
   if (speed > 0) {
+    // Process keyboard input for steering
     if (keyStates.ArrowLeft) {
       car.position.x = Math.max(-roadWidth / 2 + 100, car.position.x - (speed / 20));
       // Tilt car left when turning left
@@ -1182,13 +1259,31 @@ function update() {
       car.position.x = Math.min(roadWidth / 2 - 100, car.position.x + (speed / 20));
       // Tilt car right when turning right
       car.rotation.z = Math.max(-0.1, -speed / maxSpeed * 0.2);
+    } 
+    // Process touch/mouse input for steering when touching
+    else if (isTouching && touchStartX !== touchCurrentX) {
+      const deltaX = touchCurrentX - touchStartX;
+      // Make steering less sensitive by increasing the divisors
+      const steeringFactor = deltaX / (window.innerWidth < 768 ? 50 : 80); // Reduced sensitivity for more precise control
+      
+      if (steeringFactor < 0) {
+        // Steer left
+        car.position.x = Math.max(-roadWidth / 2 + 100, car.position.x - (speed / 20) * Math.abs(steeringFactor));
+        // Tilt car left
+        car.rotation.z = Math.min(0.1, speed / maxSpeed * 0.2 * Math.abs(steeringFactor));
+      } else {
+        // Steer right
+        car.position.x = Math.min(roadWidth / 2 - 100, car.position.x + (speed / 20) * steeringFactor);
+        // Tilt car right
+        car.rotation.z = Math.max(-0.1, -speed / maxSpeed * 0.2 * steeringFactor);
+      }
     } else {
       // Return to center when not turning
       car.rotation.z *= 0.8;
     }
     
     // Add a slight forward tilt based on acceleration/deceleration
-    if (keyStates.ArrowUp) {
+    if (keyStates.ArrowUp || isTouching) {
       // Tilt backward when accelerating
       car.rotation.x = Math.min(0.05, car.rotation.x + 0.005);
     } else if (keyStates.ArrowDown) {
