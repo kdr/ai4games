@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Character Portraits</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #333; color: white; }
+        .portrait { margin-bottom: 30px; }
+        canvas { border: 2px solid white; margin: 10px 0; }
+        button { padding: 10px 15px; margin: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Character Portrait Generator</h1>
+    <p>Click buttons to download portrait images for your game</p>
+    
+    <div id="portraitContainer"></div>
+    
+    <script>
+        // Character colors
+        const characters = [
+            { name: 'ninja', color: '#3498db' },    // Blue
+            { name: 'samurai', color: '#e74c3c' },  // Red
+            { name: 'monk', color: '#f1c40f' },     // Yellow
+            { name: 'ronin', color: '#2ecc71' }     // Green
+        ];
+        
+        function generatePortrait(char, color) {
+            const container = document.createElement('div');
+            container.className = 'portrait';
+            container.innerHTML = `<h2>${char}</h2>`;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 100, 100);
+            
+            // Border
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(5, 5, 90, 90);
+            
+            // Character initial
+            ctx.fillStyle = 'white';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(char[0].toUpperCase(), 50, 50);
+            
+            container.appendChild(canvas);
+            
+            // Download button
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = `Download ${char}_portrait.png`;
+            downloadBtn.onclick = () => {
+                const link = document.createElement('a');
+                link.download = `${char}_portrait.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+            
+            container.appendChild(downloadBtn);
+            return container;
+        }
+        
+        // Create portraits
+        const portraitContainer = document.getElementById('portraitContainer');
+        
+        characters.forEach(char => {
+            const portrait = generatePortrait(char.name, char.color);
+            portraitContainer.appendChild(portrait);
+        });
+    </script>
+</body>
+</html> 
