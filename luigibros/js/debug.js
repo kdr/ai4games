@@ -54,6 +54,22 @@ const GameDebug = {
                 }
             }, 2000);
         });
+
+        // Hide the game status panel
+        setTimeout(() => {
+            const statusPanel = document.getElementById('game-status-panel');
+            if (statusPanel) {
+                statusPanel.style.display = 'none';
+            }
+            
+            // Hide any other debug elements
+            const debugElements = document.querySelectorAll('[id*="debug"]');
+            debugElements.forEach(el => {
+                if (el !== statusPanel) {
+                    el.style.display = 'none';
+                }
+            });
+        }, 500);
     },
 
     createDebugOverlay: function() {
@@ -411,134 +427,4 @@ const GameDebug = {
             
             if (game && game.sound) {
                 game.sound.volume = volume;
-                console.log(`Game volume set to ${volume}`);
-                
-                // If we're coming back from muted state
-                if (volume > 0 && muteBtn.textContent === 'Unmute') {
-                    muteBtn.textContent = 'Mute';
-                } else if (volume === 0) {
-                    muteBtn.textContent = 'Unmute';
-                }
-            }
-        });
-        
-        muteBtn.addEventListener('click', function() {
-            if (game && game.sound) {
-                if (muteBtn.textContent === 'Mute') {
-                    // Store current volume for restoration
-                    controlPanel.dataset.prevVolume = volumeSlider.value;
-                    game.sound.volume = 0;
-                    volumeSlider.value = '0';
-                    volumeValue.textContent = '0%';
-                    muteBtn.textContent = 'Unmute';
-                } else {
-                    // Restore previous volume
-                    const prevVolume = controlPanel.dataset.prevVolume || '50';
-                    volumeSlider.value = prevVolume;
-                    volumeValue.textContent = prevVolume + '%';
-                    game.sound.volume = parseInt(prevVolume) / 100;
-                    muteBtn.textContent = 'Mute';
-                }
-            }
-        });
-        
-        closeBtn.addEventListener('click', function() {
-            document.body.removeChild(controlPanel);
-        });
-        
-        return controlPanel;
-    },
-
-    checkSoundFiles: function() {
-        const soundsToCheck = [
-            { key: 'jump', formats: ['mp3', 'wav', 'ogg'] },
-            { key: 'coin', formats: ['mp3', 'wav', 'ogg'] },
-            { key: 'theme', formats: ['mp3', 'wav', 'ogg'] },
-            { key: 'game-over', formats: ['mp3', 'wav', 'ogg'] }
-        ];
-        
-        const resultDiv = document.createElement('div');
-        resultDiv.style.position = 'fixed';
-        resultDiv.style.top = '50%';
-        resultDiv.style.left = '50%';
-        resultDiv.style.transform = 'translate(-50%, -50%)';
-        resultDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-        resultDiv.style.color = 'white';
-        resultDiv.style.padding = '20px';
-        resultDiv.style.borderRadius = '10px';
-        resultDiv.style.fontFamily = 'monospace';
-        resultDiv.style.zIndex = '1002';
-        resultDiv.style.maxHeight = '80vh';
-        resultDiv.style.overflow = 'auto';
-        resultDiv.style.width = '80%';
-        resultDiv.style.maxWidth = '600px';
-        document.body.appendChild(resultDiv);
-        
-        resultDiv.innerHTML = '<h3>Sound File Status</h3><p>Checking sound files in assets/sounds/...</p>';
-        
-        // Function to check if a file exists
-        const checkFileExists = async (url) => {
-            try {
-                const response = await fetch(url, { method: 'HEAD' });
-                return response.ok;
-            } catch (e) {
-                console.error(`Error checking ${url}:`, e);
-                return false;
-            }
-        };
-        
-        // Check each sound file and format
-        const checkAllFiles = async () => {
-            let html = '<h3>Sound File Status</h3><table style="width:100%; border-collapse:collapse;">';
-            html += '<tr><th style="text-align:left; border-bottom:1px solid white; padding:5px;">Sound</th>' + 
-                    '<th style="text-align:left; border-bottom:1px solid white; padding:5px;">Format</th>' + 
-                    '<th style="text-align:left; border-bottom:1px solid white; padding:5px;">Status</th></tr>';
-            
-            for (const sound of soundsToCheck) {
-                for (const format of sound.formats) {
-                    const url = `assets/sounds/${sound.key}.${format}`;
-                    const exists = await checkFileExists(url);
-                    
-                    const statusColor = exists ? '#4CAF50' : '#F44336';
-                    const statusText = exists ? 'EXISTS' : 'MISSING';
-                    
-                    html += `<tr>
-                        <td style="padding:5px;">${sound.key}</td>
-                        <td style="padding:5px;">${format}</td>
-                        <td style="padding:5px; color:${statusColor};">${statusText}</td>
-                    </tr>`;
-                }
-            }
-            
-            html += '</table>';
-            
-            // Add a note about sound format compatibility
-            html += `<div style="margin-top:15px; padding:10px; background-color:rgba(255,255,255,0.1);">
-                <p><strong>Sound Format Support:</strong></p>
-                <p>MP3: ${!!document.createElement('audio').canPlayType('audio/mpeg;')}</p>
-                <p>WAV: ${!!document.createElement('audio').canPlayType('audio/wav; codecs="1"')}</p>
-                <p>OGG: ${!!document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"')}</p>
-            </div>`;
-            
-            // Add a close button
-            html += '<button id="close-sound-check" style="margin-top:15px; padding:5px 10px;">Close</button>';
-            
-            resultDiv.innerHTML = html;
-            
-            // Add event listener for close button
-            document.getElementById('close-sound-check').addEventListener('click', () => {
-                document.body.removeChild(resultDiv);
-            });
-        };
-        
-        checkAllFiles();
-        
-        return resultDiv;
-    }
-};
-
-// Initialize debug tools
-document.addEventListener('DOMContentLoaded', function() {
-    GameDebug.init();
-    console.log('DOM loaded, debug ready');
-}); 
+                console.log(`

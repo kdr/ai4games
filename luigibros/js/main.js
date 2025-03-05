@@ -261,20 +261,57 @@ try {
     // Initialize our custom audio system
     try {
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize custom audio system
+            // Initialize custom audio system (still needed but keep UI hidden)
             if (window.CustomAudio) {
                 window.CustomAudio.init();
                 console.log("Custom audio system initialized");
             }
             
-            // Initialize audio controls
+            // Create audio controls but keep them hidden by default
             if (window.AudioControls) {
-                window.AudioControls.init();
-                console.log("Audio controls initialized");
+                const controls = window.AudioControls.init(true); // true = create hidden
+                
+                // Add keyboard shortcut to toggle audio controls (A key)
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'a') {
+                        // Toggle audio controls visibility
+                        if (controls.style.display === 'none') {
+                            controls.style.display = 'block';
+                        } else {
+                            controls.style.display = 'none';
+                        }
+                    }
+                });
+                
+                console.log("Audio controls initialized (hidden by default, press 'A' to show)");
             }
+            
+            // Hide any existing debug elements
+            const debugElements = document.querySelectorAll('[id*="debug"], [id*="Debug"]');
+            debugElements.forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Add hidden debug mode keyboard shortcut (Ctrl+D)
+            document.addEventListener('keydown', function(event) {
+                if (event.ctrlKey && event.key === 'd') {
+                    event.preventDefault();
+                    
+                    // Toggle debug panel
+                    if (window.GameDebug) {
+                        window.GameDebug.toggleAudioDebug();
+                    }
+                    
+                    // Also show audio controls when in debug mode
+                    const audioControls = document.querySelector('[id*="audio-controls"]');
+                    if (audioControls) {
+                        audioControls.style.display = 'block';
+                    }
+                }
+            });
         });
     } catch (e) {
-        console.error("Error initializing custom audio:", e);
+        console.error("Error initializing audio:", e);
     }
 } catch (e) {
     console.error('Error initializing game:', e);
