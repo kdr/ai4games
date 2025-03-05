@@ -247,6 +247,9 @@
                 },
                 player1: null,
                 player2: null,
+                // Add attack queue to manage attacks in order
+                attackQueue: [],
+                processingAttack: false,
                 
                 // All methods defined directly on the object
                 setPlayers: function(char1, char2) {
@@ -276,6 +279,8 @@
                             attackType: null,
                             hasHit: false,
                             blockAnimation: false,
+                            hurtTimeoutId: null,
+                            attackTimeoutId: null,
                             
                             update: function() {
                                 // Basic physics
@@ -332,12 +337,6 @@
                                     ctx.font = '24px Arial';
                                     const attackX = this.isFacingRight ? this.x + this.width/2 + 20 : this.x - this.width/2 - 20;
                                     ctx.fillText(attackTexts[this.attackType] || '!', attackX, this.y - this.height/2);
-                                    
-                                    // Reset attack state after drawing
-                                    setTimeout(() => {
-                                        this.isAttacking = false;
-                                        this.attackType = null;
-                                    }, 300);
                                 }
                             },
                             
@@ -346,6 +345,18 @@
                                 this.isAttacking = true;
                                 this.attackType = 'punch';
                                 console.log(`${this.name} punches!`);
+                                
+                                // Clear any existing attack timeout
+                                if (this.attackTimeoutId) clearTimeout(this.attackTimeoutId);
+                                
+                                // Reset attack state after drawing
+                                const self = this;
+                                this.attackTimeoutId = setTimeout(() => {
+                                    self.isAttacking = false;
+                                    self.attackType = null;
+                                    self.attackTimeoutId = null;
+                                }, 300);
+                                
                                 return true;
                             },
                             
@@ -354,6 +365,18 @@
                                 this.isAttacking = true;
                                 this.attackType = 'kick';
                                 console.log(`${this.name} kicks!`);
+                                
+                                // Clear any existing attack timeout
+                                if (this.attackTimeoutId) clearTimeout(this.attackTimeoutId);
+                                
+                                // Reset attack state after drawing
+                                const self = this;
+                                this.attackTimeoutId = setTimeout(() => {
+                                    self.isAttacking = false;
+                                    self.attackType = null;
+                                    self.attackTimeoutId = null;
+                                }, 300);
+                                
                                 return true;
                             },
                             
@@ -362,10 +385,28 @@
                                 this.isAttacking = true;
                                 this.attackType = 'special';
                                 console.log(`${this.name} uses special attack!`);
+                                
+                                // Clear any existing attack timeout
+                                if (this.attackTimeoutId) clearTimeout(this.attackTimeoutId);
+                                
+                                // Reset attack state after drawing
+                                const self = this;
+                                this.attackTimeoutId = setTimeout(() => {
+                                    self.isAttacking = false;
+                                    self.attackType = null;
+                                    self.attackTimeoutId = null;
+                                }, 300);
+                                
                                 return true;
                             },
                             
                             takeDamage: function(amount) {
+                                // Clear any existing hurt timeout
+                                if (this.hurtTimeoutId) {
+                                    clearTimeout(this.hurtTimeoutId);
+                                    this.hurtTimeoutId = null;
+                                }
+                                
                                 if (this.isBlocking) {
                                     amount = Math.floor(amount / 3);
                                     console.log(`Blocked! Reduced damage to ${amount}`);
@@ -379,14 +420,11 @@
                                 // Ensure amount is positive and health never increases
                                 amount = Math.abs(amount);
                                 
-                                // Store previous health for debugging
-                                const prevHealth = this.health;
-                                this.health -= amount;
+                                // Subtract damage from health
+                                const oldHealth = this.health;
+                                this.health = Math.max(0, Math.min(this.health - amount, this.maxHealth));
                                 
-                                // Ensure health stays within bounds
-                                this.health = Math.max(0, Math.min(this.health, this.maxHealth));
-                                
-                                console.log(`${this.name} health: ${prevHealth} -> ${this.health}/${this.maxHealth}, damage: ${amount}`);
+                                console.log(`${this.name} health: ${oldHealth} -> ${this.health}/${this.maxHealth}, damage: ${amount}`);
                                 return true;
                             },
                             
@@ -434,7 +472,8 @@
                         isFacingRight: true,
                         color: '#0066cc',
                         speed: 5,
-                        jumpPower: 15
+                        jumpPower: 15,
+                        health: 100
                     });
                     
                     // Create player2
@@ -445,11 +484,43 @@
                         isFacingRight: false,
                         color: '#cc3300',
                         speed: 5,
-                        jumpPower: 15
+                        jumpPower: 15,
+                        health: 100
                     });
                     
                     console.log("Emergency players created successfully");
                     return true;
+                },
+                
+                // New method to process attacks one at a time
+                processAttackQueue: function() {
+                    if (this.processingAttack || this.attackQueue.length === 0) return;
+                    
+                    this.processingAttack = true;
+                    const attack = this.attackQueue.shift();
+                    
+                    console.log(`Processing attack: ${attack.attacker.name} -> ${attack.target.name} (${attack.damage})`);
+                    attack.target.takeDamage(attack.damage);
+                    this.updateHealthDisplay();
+                    
+                    // Give a delay between processing attacks
+                    const self = this;
+                    setTimeout(() => {
+                        self.processingAttack = false;
+                        self.processAttackQueue();
+                    }, 100);
+                },
+                
+                // Add attack to queue instead of applying it immediately
+                addAttackToQueue: function(attacker, target, damage, type) {
+                    this.attackQueue.push({
+                        attacker: attacker,
+                        target: target,
+                        damage: damage,
+                        type: type
+                    });
+                    
+                    this.processAttackQueue();
                 },
                 
                 connect: function(elements) {
@@ -510,15 +581,27 @@
                     console.log("Starting round", this.currentRound);
                     this.gameState = 'starting';
                     
+                    // Clear attack queue
+                    this.attackQueue = [];
+                    this.processingAttack = false;
+                    
                     // Reset player positions
                     if (this.player1) {
                         this.player1.x = 200;
-                        this.player1.health = this.player1.maxHealth;
+                        this.player1.health = 100; // Always start with exact health value
+                        this.player1.maxHealth = 100;
+                        this.player1.hasHit = false;
+                        if (this.player1.attackTimeoutId) clearTimeout(this.player1.attackTimeoutId);
+                        if (this.player1.hurtTimeoutId) clearTimeout(this.player1.hurtTimeoutId);
                     }
                     
                     if (this.player2) {
                         this.player2.x = 600;
-                        this.player2.health = this.player2.maxHealth;
+                        this.player2.health = 100; // Always start with exact health value
+                        this.player2.maxHealth = 100;
+                        this.player2.hasHit = false;
+                        if (this.player2.attackTimeoutId) clearTimeout(this.player2.attackTimeoutId);
+                        if (this.player2.hurtTimeoutId) clearTimeout(this.player2.hurtTimeoutId);
                     }
                     
                     // Update health display
@@ -701,9 +784,10 @@
                     // Check if Player 1's attack hits Player 2
                     if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds) && !this.player1.hasHit) {
                         console.log(`P1 ${this.player1.attackType} hit P2!`);
-                        this.player2.takeDamage(p1Hitbox.damage);
-                        this.updateHealthDisplay();
                         this.player1.hasHit = true;
+                        
+                        // Add attack to queue instead of applying damage immediately
+                        this.addAttackToQueue(this.player1, this.player2, p1Hitbox.damage, this.player1.attackType);
                         
                         // Adding a longer cooldown to prevent multiple hits
                         setTimeout(() => {
@@ -714,9 +798,10 @@
                     // Check if Player 2's attack hits Player 1
                     if (p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds) && !this.player2.hasHit) {
                         console.log(`P2 ${this.player2.attackType} hit P1!`);
-                        this.player1.takeDamage(p2Hitbox.damage);
-                        this.updateHealthDisplay();
                         this.player2.hasHit = true;
+                        
+                        // Add attack to queue instead of applying damage immediately
+                        this.addAttackToQueue(this.player2, this.player1, p2Hitbox.damage, this.player2.attackType);
                         
                         // Adding a longer cooldown to prevent multiple hits
                         setTimeout(() => {
@@ -1069,6 +1154,21 @@
                     if (this.timerInterval) {
                         clearInterval(this.timerInterval);
                         this.timerInterval = null;
+                    }
+                    
+                    // Clear all pending attacks
+                    this.attackQueue = [];
+                    this.processingAttack = false;
+                    
+                    // Clear any character timeouts
+                    if (this.player1) {
+                        if (this.player1.attackTimeoutId) clearTimeout(this.player1.attackTimeoutId);
+                        if (this.player1.hurtTimeoutId) clearTimeout(this.player1.hurtTimeoutId);
+                    }
+                    
+                    if (this.player2) {
+                        if (this.player2.attackTimeoutId) clearTimeout(this.player2.attackTimeoutId);
+                        if (this.player2.hurtTimeoutId) clearTimeout(this.player2.hurtTimeoutId);
                     }
                     
                     this.gameState = 'idle';
