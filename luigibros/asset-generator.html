@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luigi Bros Asset Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            background-color: #fff;
+        }
+        h1 {
+            color: #2e7d32;
+            text-align: center;
+        }
+        .asset-container {
+            margin-bottom: 30px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        p {
+            color: #333;
+        }
+        .instructions {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Luigi Bros Asset Generator</h1>
+    
+    <div class="instructions">
+        <p><strong>Instructions:</strong> Click each "Generate" button to create a placeholder image for each asset. 
+        Then click "Save" to download the image. After generating all assets, place them in the corresponding folders 
+        according to the README.md file.</p>
+        <p><strong>Note:</strong> These are simple placeholder graphics. For a more polished game, you might want to use
+        professional game assets or create more detailed sprites.</p>
+    </div>
+
+    <div class="asset-container">
+        <h2>Loading Background</h2>
+        <canvas id="loading-background" width="800" height="480"></canvas>
+        <div>
+            <button onclick="generateLoadingBackground()">Generate</button>
+            <button onclick="saveCanvas('loading-background', 'loading-background.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Game Background</h2>
+        <canvas id="background" width="800" height="480"></canvas>
+        <div>
+            <button onclick="generateBackground()">Generate</button>
+            <button onclick="saveCanvas('background', 'background.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Title</h2>
+        <canvas id="title" width="500" height="200"></canvas>
+        <div>
+            <button onclick="generateTitle()">Generate</button>
+            <button onclick="saveCanvas('title', 'title.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Luigi Sprite Sheet</h2>
+        <canvas id="luigi" width="160" height="64"></canvas>
+        <div>
+            <button onclick="generateLuigi()">Generate</button>
+            <button onclick="saveCanvas('luigi', 'luigi.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Ground</h2>
+        <canvas id="ground" width="64" height="32"></canvas>
+        <div>
+            <button onclick="generateGround()">Generate</button>
+            <button onclick="saveCanvas('ground', 'ground.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Brick</h2>
+        <canvas id="brick" width="32" height="32"></canvas>
+        <div>
+            <button onclick="generateBrick()">Generate</button>
+            <button onclick="saveCanvas('brick', 'brick.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Pipe</h2>
+        <canvas id="pipe" width="64" height="64"></canvas>
+        <div>
+            <button onclick="generatePipe()">Generate</button>
+            <button onclick="saveCanvas('pipe', 'pipe.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Coin</h2>
+        <canvas id="coin" width="32" height="32"></canvas>
+        <div>
+            <button onclick="generateCoin()">Generate</button>
+            <button onclick="saveCanvas('coin', 'coin.png')">Save</button>
+        </div>
+    </div>
+
+    <div class="asset-container">
+        <h2>Goomba</h2>
+        <canvas id="goomba" width="32" height="32"></canvas>
+        <div>
+            <button onclick="generateGoomba()">Generate</button>
+            <button onclick="saveCanvas('goomba', 'goomba.png')">Save</button>
+        </div>
+    </div>
+
+    <script>
+        function saveCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function generateLoadingBackground() {
+            const canvas = document.getElementById('loading-background');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dark blue gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#000033');
+            gradient.addColorStop(1, '#003366');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add some simple stars
+            ctx.fillStyle = '#FFFFFF';
+            for(let i = 0; i < 100; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const radius = Math.random() * 2;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Add "Luigi Bros" text
+            ctx.font = '48px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.fillText('Luigi Bros', canvas.width / 2, canvas.height / 2 - 50);
+            
+            // Add loading text
+            ctx.font = '24px Arial';
+            ctx.fillText('Loading...', canvas.width / 2, canvas.height / 2 + 50);
+        }
+
+        function generateBackground() {
+            const canvas = document.getElementById('background');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.7);
+            skyGradient.addColorStop(0, '#6b8cff');
+            skyGradient.addColorStop(1, '#a0c4ff');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Ground
+            ctx.fillStyle = '#76c442';
+            ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
+            
+            // Clouds
+            ctx.fillStyle = '#FFFFFF';
+            // Cloud 1
+            drawCloud(ctx, 100, 80, 70);
+            // Cloud 2
+            drawCloud(ctx, 300, 60, 50);
+            // Cloud 3
+            drawCloud(ctx, 500, 100, 60);
+            // Cloud 4
+            drawCloud(ctx, 700, 80, 40);
+            
+            // Hills
+            ctx.fillStyle = '#5a9e34';
+            // Hill 1
+            drawHill(ctx, 150, canvas.height * 0.7, 120);
+            // Hill 2
+            drawHill(ctx, 400, canvas.height * 0.7, 170);
+            // Hill 3
+            drawHill(ctx, 650, canvas.height * 0.7, 130);
+        }
+
+        function drawCloud(ctx, x, y, size) {
+            ctx.beginPath();
+            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+            ctx.arc(x + size / 2, y - size / 4, size / 3, 0, Math.PI * 2);
+            ctx.arc(x - size / 3, y - size / 10, size / 4, 0, Math.PI * 2);
+            ctx.arc(x + size / 2, y + size / 4, size / 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawHill(ctx, x, y, size) {
+            ctx.beginPath();
+            ctx.moveTo(x - size, y);
+            ctx.quadraticCurveTo(x, y - size, x + size, y);
+            ctx.fill();
+        }
+
+        function generateTitle() {
+            const canvas = document.getElementById('title');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Title background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // "LUIGI BROS" text with drop shadow and green outline
+            ctx.font = 'bold 72px Arial';
+            
+            // Drop shadow
+            ctx.fillStyle = '#000';
+            ctx.fillText('LUIGI BROS', canvas.width / 2 + 4, canvas.height / 2 + 4);
+            
+            // Main text
+            ctx.fillStyle = '#3CB043';  // Green color for Luigi
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('LUIGI BROS', canvas.width / 2, canvas.height / 2);
+            
+            // Outline
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 2;
+            ctx.strokeText('LUIGI BROS', canvas.width / 2, canvas.height / 2);
+        }
+
+        function generateLuigi() {
+            const canvas = document.getElementById('luigi');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Create 5 frame animation (idle, run1, run2, run3, jump)
+            // Each frame is 32x64 pixels
+            
+            // Frame 1: Idle
+            drawLuigiFigure(ctx, 16, 32, 'idle');
+            
+            // Frame 2: Run 1
+            drawLuigiFigure(ctx, 16 + 32, 32, 'run1');
+            
+            // Frame 3: Run 2
+            drawLuigiFigure(ctx, 16 + 64, 32, 'run2');
+            
+            // Frame 4: Run 3
+            drawLuigiFigure(ctx, 16 + 96, 32, 'run3');
+            
+            // Frame 5: Jump
+            drawLuigiFigure(ctx, 16 + 128, 32, 'jump');
+        }
+
+        function drawLuigiFigure(ctx, x, y, pose) {
+            // Colors
+            const green = '#3CB043'; // Luigi's shirt/hat color
+            const blue = '#1565c0';  // Luigi's overalls
+            const skin = '#FFC288'; // Luigi's skin tone
+            const brown = '#8B4513'; // Luigi's boots/hair
+            
+            // Head
+            ctx.fillStyle = skin;
+            ctx.fillRect(x - 8, y - 30, 16, 16);
+            
+            // Hat
+            ctx.fillStyle = green;
+            ctx.fillRect(x - 10, y - 30, 20, 6);
+            ctx.fillRect(x - 6, y - 36, 12, 6);
+            
+            // Face
+            ctx.fillStyle = brown;  // Hair/Mustache
+            ctx.fillRect(x - 8, y - 24, 3, 2);  // Left eye
+            ctx.fillRect(x + 5, y - 24, 3, 2);  // Right eye
+            ctx.fillRect(x - 6, y - 20, 12, 2); // Mustache
+            
+            // Body based on pose
+            ctx.fillStyle = blue;  // Overalls
+            
+            if (pose === 'idle') {
+                // Torso
+                ctx.fillRect(x - 8, y - 14, 16, 14);
+                // Arms
+                ctx.fillStyle = green;  // Shirt
+                ctx.fillRect(x - 10, y - 14, 2, 10);  // Left arm
+                ctx.fillRect(x + 8, y - 14, 2, 10);   // Right arm
+                // Legs
+                ctx.fillStyle = blue;  // Overalls
+                ctx.fillRect(x - 6, y, 4, 14);   // Left leg
+                ctx.fillRect(x + 2, y, 4, 14);   // Right leg
+                // Boots
+                ctx.fillStyle = brown;
+                ctx.fillRect(x - 8, y + 14, 6, 4);   // Left boot
+                ctx.fillRect(x + 2, y + 14, 6, 4);   // Right boot
+            } 
+            else if (pose === 'run1' || pose === 'run3') {
+                // Torso
+                ctx.fillRect(x - 8, y - 14, 16, 14);
+                // Arms - extended for running
+                ctx.fillStyle = green;  // Shirt
+                ctx.fillRect(x - 12, y - 14, 4, 6);  // Left arm extended
+                ctx.fillRect(x + 8, y - 14, 4, 6);   // Right arm extended
+                // Legs - running position
+                ctx.fillStyle = blue;  // Overalls
+                ctx.fillRect(x - 8, y, 4, 10);   // Left leg forward
+                ctx.fillRect(x + 4, y, 4, 14);   // Right leg back
+                // Boots
+                ctx.fillStyle = brown;
+                ctx.fillRect(x - 10, y + 10, 6, 4);   // Left boot
+                ctx.fillRect(x + 4, y + 14, 6, 4);    // Right boot
+            }
+            else if (pose === 'run2') {
+                // Torso
+                ctx.fillRect(x - 8, y - 14, 16, 14);
+                // Arms - alternate position
+                ctx.fillStyle = green;  // Shirt
+                ctx.fillRect(x - 10, y - 10, 2, 6);  // Left arm
+                ctx.fillRect(x + 8, y - 10, 2, 6);   // Right arm
+                // Legs - alternate running
+                ctx.fillStyle = blue;  // Overalls
+                ctx.fillRect(x - 4, y, 4, 14);   // Left leg back
+                ctx.fillRect(x + 4, y, 4, 10);   // Right leg forward
+                // Boots
+                ctx.fillStyle = brown;
+                ctx.fillRect(x - 4, y + 14, 6, 4);    // Left boot
+                ctx.fillRect(x + 2, y + 10, 6, 4);    // Right boot
+            }
+            else if (pose === 'jump') {
+                // Torso - jumping position
+                ctx.fillRect(x - 8, y - 14, 16, 10);
+                // Arms - spread for jumping
+                ctx.fillStyle = green;  // Shirt
+                ctx.fillRect(x - 12, y - 14, 4, 4);  // Left arm up
+                ctx.fillRect(x + 8, y - 14, 4, 4);   // Right arm up
+                // Legs - tucked for jumping
+                ctx.fillStyle = blue;  // Overalls
+                ctx.fillRect(x - 6, y - 4, 4, 8);    // Left leg tucked
+                ctx.fillRect(x + 2, y - 4, 4, 8);    // Right leg tucked
+                // Boots
+                ctx.fillStyle = brown;
+                ctx.fillRect(x - 8, y + 4, 6, 4);    // Left boot
+                ctx.fillRect(x + 2, y + 4, 6, 4);    // Right boot
+            }
+        }
+
+        function generateGround() {
+            const canvas = document.getElementById('ground');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Main ground color
+            ctx.fillStyle = '#A0522D';  // Brown
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Top grass part
+            ctx.fillStyle = '#8B4513';  // Darker brown
+            ctx.fillRect(0, 0, canvas.width, 8);
+            
+            // Grass detail
+            ctx.fillStyle = '#76c442';  // Green
+            ctx.fillRect(0, 0, canvas.width, 4);
+            
+            // Add some texture details to the ground
+            ctx.fillStyle = '#8B4513';  // Darker brown
+            // Dots pattern
+            for (let i = 0; i < 10; i++) {
+                const x = Math.random() * canvas.width;
+                const y = 10 + Math.random() * (canvas.height - 10);
+                const size = 1 + Math.random() * 2;
+                ctx.fillRect(x, y, size, size);
+            }
+        }
+
+        function generateBrick() {
+            const canvas = document.getElementById('brick');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Main brick color
+            ctx.fillStyle = '#B22222';  // Firebrick red
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Brick pattern
+            ctx.fillStyle = '#8B0000';  // Darker red for mortar
+            
+            // Horizontal mortar lines
+            ctx.fillRect(0, canvas.height / 2 - 1, canvas.width, 2);
+            
+            // Vertical mortar lines
+            ctx.fillRect(canvas.width / 2 - 1, 0, 2, canvas.height / 2 - 1);
+            ctx.fillRect(canvas.width / 2 - 1, canvas.height / 2 + 1, 2, canvas.height / 2 - 1);
+            
+            // Brick highlights for 3D effect
+            ctx.fillStyle = '#CD5C5C';  // Lighter red
+            ctx.fillRect(1, 1, canvas.width - 2, 2);
+            ctx.fillRect(1, 1, 2, canvas.height / 2 - 3);
+            ctx.fillRect(1, canvas.height / 2 + 1, 2, canvas.height / 2 - 3);
+            ctx.fillRect(canvas.width / 2 + 1, 1, 2, canvas.height / 2 - 3);
+            ctx.fillRect(canvas.width / 2 + 1, canvas.height / 2 + 1, 2, canvas.height / 2 - 3);
+        }
+
+        function generatePipe() {
+            const canvas = document.getElementById('pipe');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Main pipe color
+            ctx.fillStyle = '#228B22';  // Forest green
+            
+            // Pipe body
+            ctx.fillRect(8, 16, 48, 48);
+            
+            // Pipe top
+            ctx.fillRect(0, 0, 64, 16);
+            
+            // Pipe highlight for 3D effect
+            ctx.fillStyle = '#32CD32';  // Lighter green
+            ctx.fillRect(10, 18, 44, 4);
+            ctx.fillRect(10, 18, 4, 44);
+            ctx.fillRect(2, 2, 60, 4);
+            ctx.fillRect(2, 2, 4, 12);
+            
+            // Pipe shadow
+            ctx.fillStyle = '#006400';  // Dark green
+            ctx.fillRect(8, 60, 48, 4);
+            ctx.fillRect(52, 16, 4, 48);
+            ctx.fillRect(58, 8, 4, 8);
+            ctx.fillRect(0, 14, 64, 2);
+        }
+
+        function generateCoin() {
+            const canvas = document.getElementById('coin');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Coin circle
+            ctx.fillStyle = '#FFD700';  // Gold
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 14, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Inner highlight
+            ctx.fillStyle = '#FFF8DC';  // Very light gold
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2 - 3, canvas.height / 2 - 3, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Outer edge
+            ctx.strokeStyle = '#B8860B';  // Dark gold
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 14, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function generateGoomba() {
+            const canvas = document.getElementById('goomba');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Goomba body
+            ctx.fillStyle = '#8B4513';  // Brown
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 14, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Goomba face
+            ctx.fillStyle = '#FFF';  // White eyes
+            ctx.fillRect(canvas.width / 2 - 8, canvas.height / 2 - 4, 5, 5);  // Left eye
+            ctx.fillRect(canvas.width / 2 + 3, canvas.height / 2 - 4, 5, 5);  // Right eye
+            
+            // Goomba pupils
+            ctx.fillStyle = '#000';  // Black pupils
+            ctx.fillRect(canvas.width / 2 - 6, canvas.height / 2 - 2, 2, 2);  // Left pupil
+            ctx.fillRect(canvas.width / 2 + 4, canvas.height / 2 - 2, 2, 2);  // Right pupil
+            
+            // Goomba mouth
+            ctx.fillStyle = '#000';  // Black
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2 - 6, canvas.height / 2 + 4);
+            ctx.lineTo(canvas.width / 2 + 6, canvas.height / 2 + 4);
+            ctx.lineTo(canvas.width / 2, canvas.height / 2 + 8);
+            ctx.fill();
+            
+            // Goomba feet
+            ctx.fillStyle = '#000';  // Black
+            ctx.fillRect(canvas.width / 2 - 12, canvas.height / 2 + 10, 8, 4);  // Left foot
+            ctx.fillRect(canvas.width / 2 + 4, canvas.height / 2 + 10, 8, 4);   // Right foot
+        }
+    </script>
+</body>
+</html> 

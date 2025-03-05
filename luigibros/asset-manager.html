@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luigi Bros Asset Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1, h2, h3 {
+            color: #2e7d32;
+        }
+        .asset-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .dropzone {
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+            margin: 15px 0;
+            background-color: #f8fff8;
+            transition: background-color 0.3s;
+        }
+        .dropzone.highlight {
+            background-color: #e8f5e9;
+        }
+        .file-list {
+            margin-top: 10px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item img {
+            max-width: 50px;
+            max-height: 50px;
+            margin-right: 10px;
+        }
+        .file-name {
+            flex-grow: 1;
+        }
+        .progress-container {
+            margin-top: 20px;
+        }
+        .progress-bar {
+            background-color: #ddd;
+            border-radius: 8px;
+            height: 20px;
+            margin-bottom: 10px;
+        }
+        .progress {
+            background-color: #4CAF50;
+            height: 100%;
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .instructions {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Luigi Bros Asset Manager</h1>
+
+    <div class="instructions">
+        <h3>Instructions:</h3>
+        <p>Use this tool to place all your generated assets in the correct folders for the Luigi Bros game.</p>
+        <ol>
+            <li>Generate all image assets using the <a href="asset-generator.html">Asset Generator</a></li>
+            <li>Generate all sound assets using the <a href="sound-generator.html">Sound Generator</a></li>
+            <li>Drag and drop your generated files into the appropriate sections below</li>
+            <li>Click "Save All Assets" to place them in the correct folders</li>
+        </ol>
+    </div>
+
+    <div class="progress-container">
+        <h3>Asset Placement Progress</h3>
+        <div class="progress-bar">
+            <div class="progress" id="progress-bar"></div>
+        </div>
+        <div id="progress-text">0/13 assets placed (0%)</div>
+    </div>
+
+    <h2>Image Assets</h2>
+    
+    <div class="asset-card">
+        <h3>Loading Background</h3>
+        <div class="dropzone" id="dropzone-loading-background" data-target="assets/images/loading-background.png">
+            Drag and drop loading-background.png here
+        </div>
+        <div class="file-list" id="file-list-loading-background"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Background</h3>
+        <div class="dropzone" id="dropzone-background" data-target="assets/images/background.png">
+            Drag and drop background.png here
+        </div>
+        <div class="file-list" id="file-list-background"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Title</h3>
+        <div class="dropzone" id="dropzone-title" data-target="assets/images/title.png">
+            Drag and drop title.png here
+        </div>
+        <div class="file-list" id="file-list-title"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Luigi Sprite Sheet</h3>
+        <div class="dropzone" id="dropzone-luigi" data-target="assets/images/luigi.png">
+            Drag and drop luigi.png here
+        </div>
+        <div class="file-list" id="file-list-luigi"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Ground</h3>
+        <div class="dropzone" id="dropzone-ground" data-target="assets/images/ground.png">
+            Drag and drop ground.png here
+        </div>
+        <div class="file-list" id="file-list-ground"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Brick</h3>
+        <div class="dropzone" id="dropzone-brick" data-target="assets/images/brick.png">
+            Drag and drop brick.png here
+        </div>
+        <div class="file-list" id="file-list-brick"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Pipe</h3>
+        <div class="dropzone" id="dropzone-pipe" data-target="assets/images/pipe.png">
+            Drag and drop pipe.png here
+        </div>
+        <div class="file-list" id="file-list-pipe"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Coin</h3>
+        <div class="dropzone" id="dropzone-coin" data-target="assets/images/coin.png">
+            Drag and drop coin.png here
+        </div>
+        <div class="file-list" id="file-list-coin"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Goomba</h3>
+        <div class="dropzone" id="dropzone-goomba" data-target="assets/images/goomba.png">
+            Drag and drop goomba.png here
+        </div>
+        <div class="file-list" id="file-list-goomba"></div>
+    </div>
+
+    <h2>Sound Assets</h2>
+
+    <div class="asset-card">
+        <h3>Jump Sound</h3>
+        <div class="dropzone" id="dropzone-jump" data-target="assets/sounds/jump.wav">
+            Drag and drop jump.wav here
+        </div>
+        <div class="file-list" id="file-list-jump"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Coin Sound</h3>
+        <div class="dropzone" id="dropzone-coin-sound" data-target="assets/sounds/coin.wav">
+            Drag and drop coin.wav here
+        </div>
+        <div class="file-list" id="file-list-coin-sound"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Game Over Sound</h3>
+        <div class="dropzone" id="dropzone-game-over" data-target="assets/sounds/game-over.wav">
+            Drag and drop game-over.wav here
+        </div>
+        <div class="file-list" id="file-list-game-over"></div>
+    </div>
+
+    <div class="asset-card">
+        <h3>Theme Music</h3>
+        <div class="dropzone" id="dropzone-theme" data-target="assets/sounds/theme.mp3">
+            Drag and drop theme.mp3 here
+        </div>
+        <div class="file-list" id="file-list-theme"></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button id="save-button">Save All Assets</button>
+    </div>
+
+    <script>
+        // Store file references
+        const files = {};
+        const totalAssets = 13;
+        let placedAssets = 0;
+
+        // Get all dropzones
+        const dropzones = document.querySelectorAll('.dropzone');
+        
+        // Add drag and drop events to all dropzones
+        dropzones.forEach(dropzone => {
+            const id = dropzone.id.replace('dropzone-', '');
+            const fileListId = 'file-list-' + id;
+            const fileList = document.getElementById(fileListId);
+            
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // Highlight dropzone when file is dragged over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.add('highlight');
+                }, false);
+            });
+            
+            // Remove highlight when file is dragged out
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.remove('highlight');
+                }, false);
+            });
+            
+            // Handle dropped files
+            dropzone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const file = dt.files[0]; // Get only the first file
+                
+                if (file) {
+                    // Store file reference
+                    const targetPath = dropzone.dataset.target;
+                    files[targetPath] = file;
+                    
+                    // Display file in the list
+                    fileList.innerHTML = '';
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    // Show preview for images
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.file = file;
+                        fileItem.appendChild(img);
+                        
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                    
+                    const fileName = document.createElement('div');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+                    fileItem.appendChild(fileName);
+                    
+                    fileList.appendChild(fileItem);
+                    
+                    // Update progress
+                    updateProgress();
+                }
+            }, false);
+        });
+        
+        // Save button click handler
+        document.getElementById('save-button').addEventListener('click', () => {
+            alert("In a real application, this would save the files to their respective locations.\n\nFor now, please manually place the files in the specified folders:\n\n- Image files in 'assets/images/'\n- Sound files in 'assets/sounds/'");
+        });
+        
+        // Helper functions
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function updateProgress() {
+            placedAssets = Object.keys(files).length;
+            const percentage = Math.round((placedAssets / totalAssets) * 100);
+            
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            document.getElementById('progress-text').textContent = 
+                `${placedAssets}/${totalAssets} assets placed (${percentage}%)`;
+        }
+    </script>
+</body>
+</html> 

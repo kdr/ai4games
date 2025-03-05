@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luigi Bros</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Using local Phaser instead of CDN for better compatibility -->
+    <script src="js/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Fallback content if game fails to load -->
+        <div id="loading-message" style="color: white; text-align: center; padding: 20px;">
+            <h2>Loading Luigi Bros...</h2>
+            <p>If the game doesn't appear in a few seconds, check the browser console for errors.</p>
+            <p><a href="asset-test.html" style="color: #88ff88;">Run Asset Test</a></p>
+        </div>
+    </div>
+
+    <!-- Debug script for troubleshooting -->
+    <script src="js/debug.js"></script>
+    <!-- Load scene classes first -->
+    <script src="js/scenes/BootScene.js"></script>
+    <script src="js/scenes/PreloadScene.js"></script>
+    <script src="js/scenes/TitleScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <!-- Then load config that references those classes -->
+    <script src="js/config.js"></script>
+    <!-- Finally load main.js which initializes the game -->
+    <script src="js/main.js"></script>
+    
+    <!-- Add this before the scene scripts but after phaser.min.js -->
+    <script src="js/sound-fallbacks.js"></script>
+    <script src="js/sound-placeholders.js"></script>
+    
+    <!-- Add these before the scene scripts -->
+    <script src="js/custom-audio.js"></script>
+    <script src="js/audio-controls.js"></script>
+    
+    <script>
+        // Remove loading message once game starts
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const loadingMessage = document.getElementById('loading-message');
+                if (loadingMessage && loadingMessage.parentNode) {
+                    loadingMessage.parentNode.removeChild(loadingMessage);
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html> 
