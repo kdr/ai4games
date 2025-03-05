@@ -1263,8 +1263,8 @@ function update() {
     // Process touch/mouse input for steering when touching
     else if (isTouching && touchStartX !== touchCurrentX) {
       const deltaX = touchCurrentX - touchStartX;
-      // Make steering more responsive on mobile
-      const steeringFactor = deltaX / (window.innerWidth < 768 ? 30 : 50); // Increased sensitivity on mobile
+      // Make steering less sensitive by increasing the divisors
+      const steeringFactor = deltaX / (window.innerWidth < 768 ? 50 : 80); // Reduced sensitivity for more precise control
       
       if (steeringFactor < 0) {
         // Steer left
