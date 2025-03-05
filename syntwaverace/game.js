@@ -10,6 +10,7 @@ let isGameStarted = false;
 let gameLoop;
 let speedLines = []; // Array to hold speed line objects
 let roadsideObjects = []; // Array to hold roadside objects
+let brakeLights = []; // Array to hold brake light objects and their glows
 
 // Road config
 const roadWidth = 2000;
@@ -308,7 +309,7 @@ function createCar() {
   bottomTrim.position.set(30, 0, 20);
   car.add(bottomTrim);
   
-  // Add tail lights
+  // Add regular tail lights (these will be the base)
   const tailLightGeometry = new THREE.BoxGeometry(5, 5, 40);
   const tailLightMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xff0000,
@@ -325,6 +326,58 @@ function createCar() {
   const rightTailLight = new THREE.Mesh(tailLightGeometry, tailLightMaterial);
   rightTailLight.position.set(55, 5, 20);
   car.add(rightTailLight);
+  
+  // Add neon brake lights (these will glow brighter when braking)
+  // Create two separate brake light bars
+  const brakeLightGeometry = new THREE.BoxGeometry(18, 6, 3); // Smaller width for individual lights
+  const brakeLightMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xff0066, // purple-red color
+    transparent: true,
+    opacity: 0.8 // Very visible by default
+  });
+  
+  // Left brake light
+  const leftBrakeLight = new THREE.Mesh(brakeLightGeometry, brakeLightMaterial);
+  leftBrakeLight.position.set(15, 8, -2); // Left side position
+  car.add(leftBrakeLight);
+  
+  // Right brake light
+  const rightBrakeLight = new THREE.Mesh(brakeLightGeometry, brakeLightMaterial);
+  rightBrakeLight.position.set(45, 8, -2); // Right side position
+  car.add(rightBrakeLight);
+  
+  // Add glow effect for brake lights
+  const brakeGlowGeometry = new THREE.BoxGeometry(20, 8, 3); // Slightly larger than the light for glow
+  const brakeGlowMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xff00ff, // More purple glow
+    transparent: true,
+    opacity: 0.5 // Strong glow by default
+  });
+  
+  // Left brake light glow
+  const leftBrakeGlow = new THREE.Mesh(brakeGlowGeometry, brakeGlowMaterial);
+  leftBrakeGlow.position.set(15, 8, -2); // Match position with left brake light
+  car.add(leftBrakeGlow);
+  
+  // Right brake light glow
+  const rightBrakeGlow = new THREE.Mesh(brakeGlowGeometry, brakeGlowMaterial);
+  rightBrakeGlow.position.set(45, 8, -2); // Match position with right brake light
+  car.add(rightBrakeGlow);
+  
+  // Store brake light objects for animation
+  brakeLights = []; // Clear the array first
+  brakeLights.push({ 
+    light: leftBrakeLight, 
+    glow: leftBrakeGlow, 
+    baseLightOpacity: 0.8,
+    baseGlowOpacity: 0.5
+  });
+  brakeLights.push({ 
+    light: rightBrakeLight, 
+    glow: rightBrakeGlow, 
+    baseLightOpacity: 0.8,
+    baseGlowOpacity: 0.5
+  });
   
   // Add headlights
   const headlightGeometry = new THREE.BoxGeometry(8, 5, 2);
@@ -345,11 +398,11 @@ function createCar() {
   car.add(rightHeadlight);
   
   // Subtle glow effect
-  const glowGeometry = new THREE.BoxGeometry(70, 40, 50);
+  const glowGeometry = new THREE.BoxGeometry(65, 35, 45); // Smaller, more form-fitting
   const glowMaterial = new THREE.MeshBasicMaterial({
     color: neonColor,
     transparent: true,
-    opacity: 0.15
+    opacity: 0.08 // Much subtler glow
   });
   const glow = new THREE.Mesh(glowGeometry, glowMaterial);
   glow.position.set(30, 15, 20);
@@ -747,10 +800,21 @@ function update() {
   // Handle acceleration/deceleration
   if (keyStates.ArrowUp) {
     speed = Math.min(maxSpeed, speed + acceleration);
+    
+    // Dim brake lights when accelerating
+    updateBrakeLightsIntensity(false);
+    
   } else if (keyStates.ArrowDown) {
     speed = Math.max(0, speed - deceleration * 2);
+    
+    // Brighten brake lights when braking
+    updateBrakeLightsIntensity(true);
+    
   } else {
     speed = Math.max(0, speed - deceleration);
+    
+    // Normal brake light intensity when coasting
+    updateBrakeLightsIntensity(false);
   }
 
   // Handle steering with car tilt
@@ -1015,6 +1079,29 @@ function updateRoadsideObjects() {
       object.position.z = resetPosition + Math.random() * 500;
     }
   }
+}
+
+// Update brake light intensity based on braking state
+function updateBrakeLightsIntensity(isBraking) {
+  brakeLights.forEach(brakeLight => {
+    if (isBraking) {
+      // Intense glow when braking
+      brakeLight.light.material.opacity = 1.0;  // Maximum brightness
+      brakeLight.glow.material.opacity = 0.8;   // Strong glow
+      
+      // Update color to be more intense red when braking
+      brakeLight.light.material.color.set(0xff0033);
+      brakeLight.glow.material.color.set(0xff00cc);
+    } else {
+      // Always visible with a subtle glow (instead of completely off)
+      brakeLight.light.material.opacity = 0.8;
+      brakeLight.glow.material.opacity = 0.5;
+      
+      // Slightly dimmer purple-red color when not braking
+      brakeLight.light.material.color.set(0xff0066);
+      brakeLight.glow.material.color.set(0xff00ff);
+    }
+  });
 }
 
 // Initialize the game when the page loads
