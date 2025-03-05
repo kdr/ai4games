@@ -10,5 +10,8 @@
   "routes": [
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
-  ]
+  ],
+  "github": {
+    "silent": true
+  }
 } 
