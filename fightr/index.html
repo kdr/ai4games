@@ -217,1029 +217,821 @@
     <script src="js/game.js"></script>
     <script src="js/main.js"></script>
     <script>
-        // Define global functions first
-        function showCharSelect() {
-            console.log("showCharSelect function called");
-            
-            // Hide all screens first
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-                screen.style.display = 'none';
-            });
-            
-            // Show character select screen
-            const charSelect = document.getElementById('character-select');
-            if (charSelect) {
-                charSelect.classList.add('active');
-                charSelect.style.display = 'flex';
-                console.log("Character select screen displayed");
-            } else {
-                console.error("Character select screen not found!");
-            }
-        }
+        // Global emergency initialization code
+        window.DEBUG = true;
         
-        // Emergency FightGame implementation in case game.js fails to load
-        if (typeof FightGame !== 'function') {
-            console.error("❌ FightGame class not found - creating emergency implementation");
+        // Emergency factory function to create a game without relying on prototypes
+        window.createEmergencyGame = function(canvas, useAI) {
+            console.log("🚨 Creating direct emergency game instance");
             
-            window.FightGame = function(canvas, useAI) {
-                console.log("Creating emergency FightGame implementation");
-                this.canvas = canvas;
-                this.ctx = canvas.getContext('2d');
-                this.width = canvas.width;
-                this.height = canvas.height;
-                this.useAI = useAI;
-                this.groundY = this.height - 50;
-                this.players = [];
-                this.timer = 90;
-                this.gameState = 'starting';
-                this.currentRound = 1;
-                this.p1Wins = 0;
-                this.p2Wins = 0;
-                this.gravity = 1;
-                this.uiElements = {};
+            // Create game object directly
+            const game = {
+                canvas: canvas,
+                ctx: canvas.getContext('2d'),
+                width: canvas.width,
+                height: canvas.height,
+                useAI: useAI || false,
+                gameState: 'idle',
+                leftBoundary: 100,
+                rightBoundary: canvas.width - 100,
+                groundY: canvas.height - 100,
+                timeRemaining: 99,
+                p1Wins: 0,
+                p2Wins: 0,
+                currentRound: 1,
+                lastTime: 0,
+                fpsInterval: 1000 / 60,
+                keys: {
+                    w: false, a: false, s: false, d: false,
+                    g: false, h: false, j: false
+                },
+                player1: null,
+                player2: null,
                 
-                // Draw something to show the game is functioning
-                this.ctx.fillStyle = 'black';
-                this.ctx.fillRect(0, 0, this.width, this.height);
-                this.ctx.strokeStyle = 'red';
-                this.ctx.lineWidth = 5;
-                this.ctx.strokeRect(0, 0, this.width, this.height);
-            };
-            
-            // Basic methods
-            FightGame.prototype.connect = function(elements) {
-                this.uiElements = elements || {};
-                console.log("Connected UI elements:", this.uiElements);
-                return this;
-            };
-            
-            FightGame.prototype.setPlayers = function(char1, char2) {
-                console.log("Setting emergency players:", char1, char2);
-                // Create basic character objects with enhanced functionality
-                this.players = [
-                    {
+                // All methods defined directly on the object
+                setPlayers: function(char1, char2) {
+                    console.log("Setting players:", char1, char2);
+                    
+                    // Create a simple character constructor
+                    function createCharacter(options) {
+                        return {
+                            name: options.name || 'Unknown',
+                            x: options.x || 100,
+                            y: options.y || 350,
+                            width: options.width || 80,
+                            height: options.height || 150,
+                            health: options.health || 100,
+                            maxHealth: options.health || 100,
+                            isFacingRight: options.isFacingRight !== false,
+                            color: options.color || '#ff0000',
+                            vx: 0,
+                            vy: 0,
+                            speed: options.speed || 5,
+                            jumpPower: options.jumpPower || 15,
+                            gravity: 0.8,
+                            isGrounded: true,
+                            isJumping: false,
+                            isBlocking: false,
+                            isAttacking: false,
+                            attackType: null,
+                            
+                            update: function() {
+                                // Basic physics
+                                if (!this.isGrounded) {
+                                    this.vy += this.gravity;
+                                }
+                                
+                                // Update position
+                                this.x += this.vx;
+                                this.y += this.vy;
+                                
+                                // Ground collision
+                                if (this.y > 350) {
+                                    this.y = 350;
+                                    this.vy = 0;
+                                    this.isGrounded = true;
+                                    this.isJumping = false;
+                                }
+                                
+                                return true;
+                            },
+                            
+                            draw: function(ctx) {
+                                ctx.fillStyle = this.color;
+                                ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
+                                
+                                // Draw name
+                                ctx.fillStyle = 'white';
+                                ctx.font = '16px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(this.name, this.x, this.y - this.height - 10);
+                                
+                                // Draw if blocking
+                                if (this.isBlocking) {
+                                    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+                                    ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
+                                }
+                                
+                                // Draw if attacking
+                                if (this.isAttacking) {
+                                    const attackTexts = {
+                                        'punch': '👊',
+                                        'kick': '🦶',
+                                        'special': '⚡️'
+                                    };
+                                    
+                                    ctx.font = '24px Arial';
+                                    const attackX = this.isFacingRight ? this.x + this.width/2 + 20 : this.x - this.width/2 - 20;
+                                    ctx.fillText(attackTexts[this.attackType] || '!', attackX, this.y - this.height/2);
+                                    
+                                    // Reset attack state after drawing
+                                    setTimeout(() => {
+                                        this.isAttacking = false;
+                                        this.attackType = null;
+                                    }, 300);
+                                }
+                            },
+                            
+                            punch: function() {
+                                this.isAttacking = true;
+                                this.attackType = 'punch';
+                                return true;
+                            },
+                            
+                            kick: function() {
+                                this.isAttacking = true;
+                                this.attackType = 'kick';
+                                return true;
+                            },
+                            
+                            special: function() {
+                                this.isAttacking = true;
+                                this.attackType = 'special';
+                                return true;
+                            },
+                            
+                            takeDamage: function(amount) {
+                                if (this.isBlocking) {
+                                    amount = Math.floor(amount / 2);
+                                }
+                                this.health -= amount;
+                                if (this.health < 0) this.health = 0;
+                                return true;
+                            },
+                            
+                            moveLeft: function() { this.vx = -this.speed; this.isFacingRight = false; },
+                            moveRight: function() { this.vx = this.speed; this.isFacingRight = true; },
+                            stopMoving: function() { this.vx = 0; },
+                            jump: function() {
+                                if (this.isGrounded) {
+                                    this.vy = -this.jumpPower;
+                                    this.isGrounded = false;
+                                    this.isJumping = true;
+                                }
+                            },
+                            
+                            startBlock: function() { this.isBlocking = true; },
+                            endBlock: function() { this.isBlocking = false; },
+                            
+                            getCurrentHitbox: function() {
+                                if (!this.isAttacking) return null;
+                                
+                                const hitboxWidth = this.attackType === 'punch' ? 60 :
+                                                   this.attackType === 'kick' ? 70 : 80;
+                                
+                                const hitboxX = this.isFacingRight ?
+                                    this.x + this.width/2 :
+                                    this.x - this.width/2 - hitboxWidth;
+                                    
+                                return {
+                                    x: hitboxX,
+                                    y: this.y - this.height/2,
+                                    width: hitboxWidth,
+                                    height: 40,
+                                    damage: this.attackType === 'punch' ? 5 :
+                                            this.attackType === 'kick' ? 8 : 15
+                                };
+                            }
+                        };
+                    }
+                    
+                    // Create player1
+                    this.player1 = createCharacter({
                         name: char1,
                         x: 200,
                         y: this.groundY,
-                        width: 80,
-                        height: 150,
-                        health: 100,
-                        maxHealth: 100,
-                        color: char1 === 'ninja' ? '#4299e1' : 
-                               char1 === 'samurai' ? '#e53e3e' : 
-                               char1 === 'monk' ? '#ecc94b' : '#48bb78',
+                        isFacingRight: true,
+                        color: '#0066cc',
                         speed: 5,
-                        jumpPower: 15,
-                        isJumping: false,
-                        yVelocity: 0,
-                        isAttacking: false,
-                        isBlocking: false,
-                        attackType: null,
-                        attackTimer: 0,
-                        facingRight: true,
-                        
-                        update: function() {
-                            // Handle gravity if jumping
-                            if (this.isJumping) {
-                                this.y -= this.yVelocity;
-                                this.yVelocity -= 0.8; // Gravity effect
-                                
-                                // Check if landed
-                                if (this.y >= window.game.groundY) {
-                                    this.y = window.game.groundY;
-                                    this.isJumping = false;
-                                    this.yVelocity = 0;
-                                }
-                            }
-                            
-                            // Handle attack animations
-                            if (this.isAttacking && this.attackTimer > 0) {
-                                this.attackTimer--;
-                                if (this.attackTimer <= 0) {
-                                    this.isAttacking = false;
-                                    this.attackType = null;
-                                }
-                            }
-                            
-                            // Move based on keyboard input from game.keys
-                            if (window.game && window.game.keys) {
-                                // Move left
-                                if (window.game.keys.a && !this.isAttacking && !this.isBlocking) {
-                                    this.x -= this.speed;
-                                    this.facingRight = false;
-                                }
-                                
-                                // Move right
-                                if (window.game.keys.d && !this.isAttacking && !this.isBlocking) {
-                                    this.x += this.speed;
-                                    this.facingRight = true;
-                                }
-                                
-                                // Block
-                                if (window.game.keys.s) {
-                                    this.isBlocking = true;
-                                } else {
-                                    this.isBlocking = false;
-                                }
-                            }
-                            
-                            // Keep player within bounds
-                            if (this.x < this.width/2) this.x = this.width/2;
-                            if (this.x > window.game.width - this.width/2) this.x = window.game.width - this.width/2;
-                            
-                            return true;
-                        },
-                        
-                        draw: function(ctx) {
-                            // Draw character basic shape
-                            ctx.fillStyle = this.isBlocking ? 'gray' : this.color;
-                            
-                            // Draw based on facing direction
-                            const drawX = this.facingRight ? this.x - this.width/2 : this.x - this.width/2;
-                            ctx.fillRect(drawX, this.y - this.height, this.width, this.height);
-                            
-                            // Draw character name
-                            ctx.fillStyle = 'white';
-                            ctx.font = '16px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.fillText(this.name, this.x, this.y - this.height - 10);
-                            
-                            // Draw attack animation if attacking
-                            if (this.isAttacking) {
-                                ctx.fillStyle = this.attackType === 'punch' ? 'orange' : 
-                                                this.attackType === 'kick' ? 'yellow' : 'white';
-                                
-                                const attackX = this.facingRight ? this.x + this.width/2 : this.x - this.width/2 - 30;
-                                const attackWidth = 30;
-                                const attackHeight = this.attackType === 'kick' ? 20 : 30;
-                                const attackY = this.attackType === 'kick' ? this.y - 40 : this.y - 100;
-                                
-                                ctx.fillRect(attackX, attackY, attackWidth, attackHeight);
-                            }
-                        },
-                        
-                        jump: function() {
-                            if (!this.isJumping && !this.isAttacking) {
-                                this.isJumping = true;
-                                this.yVelocity = this.jumpPower;
-                                console.log(`${this.name} jumped`);
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        punch: function() {
-                            if (!this.isAttacking && !this.isJumping && !this.isBlocking) {
-                                this.isAttacking = true;
-                                this.attackType = 'punch';
-                                this.attackTimer = 15; // Frames attack lasts
-                                console.log(`${this.name} punched`);
-                                
-                                // Check for hit on opponent
-                                this.checkHit();
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        kick: function() {
-                            if (!this.isAttacking && !this.isJumping && !this.isBlocking) {
-                                this.isAttacking = true;
-                                this.attackType = 'kick';
-                                this.attackTimer = 20; // Frames attack lasts
-                                console.log(`${this.name} kicked`);
-                                
-                                // Check for hit on opponent
-                                this.checkHit();
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        special: function() {
-                            if (!this.isAttacking && !this.isBlocking) {
-                                this.isAttacking = true;
-                                this.attackType = 'special';
-                                this.attackTimer = 30; // Frames attack lasts
-                                console.log(`${this.name} used special attack`);
-                                
-                                // Check for hit on opponent
-                                this.checkHit();
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        block: function() {
-                            this.isBlocking = true;
-                            return true;
-                        },
-                        
-                        stopBlock: function() {
-                            this.isBlocking = false;
-                            return true;
-                        },
-                        
-                        checkHit: function() {
-                            // Simple hit detection
-                            if (window.game && window.game.players && window.game.players.length > 1) {
-                                const opponent = window.game.players[1];
-                                const attackRange = 100; // Attack range
-                                
-                                const distance = Math.abs(this.x - opponent.x);
-                                if (distance < attackRange && !opponent.isBlocking) {
-                                    // Calculate damage based on attack type
-                                    let damage = this.attackType === 'punch' ? 5 : 
-                                                this.attackType === 'kick' ? 8 : 12;
-                                    
-                                    opponent.takeDamage(damage);
-                                }
-                            }
-                        },
-                        
-                        takeDamage: function(amount) {
-                            if (!this.isBlocking) {
-                                this.health -= amount;
-                                if (this.health < 0) this.health = 0;
-                                
-                                // Update health bar
-                                if (this === window.game.players[0] && window.game.uiElements.healthP1) {
-                                    const healthPercent = (this.health / this.maxHealth) * 100;
-                                    window.game.uiElements.healthP1.style.width = `${healthPercent}%`;
-                                } else if (this === window.game.players[1] && window.game.uiElements.healthP2) {
-                                    const healthPercent = (this.health / this.maxHealth) * 100;
-                                    window.game.uiElements.healthP2.style.width = `${healthPercent}%`;
-                                }
-                                
-                                console.log(`${this.name} took ${amount} damage, health: ${this.health}`);
-                                return true;
-                            }
-                            console.log(`${this.name} blocked the attack!`);
-                            return false;
-                        }
-                    },
-                    {
+                        jumpPower: 15
+                    });
+                    
+                    // Create player2
+                    this.player2 = createCharacter({
                         name: char2,
                         x: 600,
                         y: this.groundY,
-                        width: 80,
-                        height: 150,
-                        health: 100,
-                        maxHealth: 100,
-                        color: char2 === 'ninja' ? '#4299e1' : 
-                               char2 === 'samurai' ? '#e53e3e' : 
-                               char2 === 'monk' ? '#ecc94b' : '#48bb78',
-                        isAttacking: false,
-                        attackType: null,
-                        attackTimer: 0,
-                        aiThinkTimer: 0,
-                        facingRight: false,
-                        
-                        update: function() {
-                            // Simple AI behavior
-                            this.aiThinkTimer--;
-                            if (this.aiThinkTimer <= 0) {
-                                this.aiThinkTimer = Math.floor(Math.random() * 60) + 30;
-                                this.aiAction();
-                            }
-                            
-                            // Handle attack animations
-                            if (this.isAttacking && this.attackTimer > 0) {
-                                this.attackTimer--;
-                                if (this.attackTimer <= 0) {
-                                    this.isAttacking = false;
-                                    this.attackType = null;
-                                }
-                            }
-                            
-                            return true;
-                        },
-                        
-                        draw: function(ctx) {
-                            // Draw character basic shape
-                            ctx.fillStyle = this.isBlocking ? 'gray' : this.color;
-                            ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
-                            
-                            // Draw character name
-                            ctx.fillStyle = 'white';
-                            ctx.font = '16px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.fillText(this.name, this.x, this.y - this.height - 10);
-                            
-                            // Draw attack animation if attacking
-                            if (this.isAttacking) {
-                                ctx.fillStyle = this.attackType === 'punch' ? 'orange' : 
-                                                this.attackType === 'kick' ? 'yellow' : 'white';
-                                
-                                const attackX = this.facingRight ? this.x + this.width/2 : this.x - this.width/2 - 30;
-                                const attackWidth = 30;
-                                const attackHeight = this.attackType === 'kick' ? 20 : 30;
-                                const attackY = this.attackType === 'kick' ? this.y - 40 : this.y - 100;
-                                
-                                ctx.fillRect(attackX, attackY, attackWidth, attackHeight);
-                            }
-                        },
-                        
-                        aiAction: function() {
-                            if (window.game && window.game.players && window.game.players.length > 0) {
-                                const player = window.game.players[0];
-                                const distance = Math.abs(this.x - player.x);
-                                
-                                // Decide what to do based on distance
-                                if (distance < 100 && !this.isAttacking) {
-                                    // In attack range - attack
-                                    const attackChoice = Math.random();
-                                    if (attackChoice < 0.4) this.punch();
-                                    else if (attackChoice < 0.8) this.kick();
-                                    else this.special();
-                                } 
-                                else if (distance > 150 && !this.isAttacking) {
-                                    // Move toward player
-                                    if (this.x > player.x) {
-                                        this.x -= 3;
-                                        this.facingRight = false;
-                                    } else {
-                                        this.x += 3;
-                                        this.facingRight = true;
-                                    }
-                                }
-                                else if (Math.random() < 0.1) {
-                                    // Random block
-                                    this.isBlocking = !this.isBlocking;
-                                }
-                            }
-                        },
-                        
-                        punch: function() {
-                            if (!this.isAttacking && !this.isBlocking) {
-                                this.isAttacking = true;
-                                this.attackType = 'punch';
-                                this.attackTimer = 15;
-                                
-                                // Check for hit on player
-                                this.checkHit();
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        kick: function() {
-                            if (!this.isAttacking && !this.isBlocking) {
-                                this.isAttacking = true;
-                                this.attackType = 'kick';
-                                this.attackTimer = 20;
-                                
-                                // Check for hit on player
-                                this.checkHit();
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        special: function() {
-                            if (!this.isAttacking && !this.isBlocking) {
-                                this.isAttacking = true;
-                                this.attackType = 'special';
-                                this.attackTimer = 30;
-                                
-                                // Check for hit on player
-                                this.checkHit();
-                                return true;
-                            }
-                            return false;
-                        },
-                        
-                        checkHit: function() {
-                            // Simple hit detection
-                            if (window.game && window.game.players && window.game.players.length > 0) {
-                                const opponent = window.game.players[0];
-                                const attackRange = 100;
-                                
-                                const distance = Math.abs(this.x - opponent.x);
-                                if (distance < attackRange && !opponent.isBlocking) {
-                                    // Calculate damage based on attack type
-                                    let damage = this.attackType === 'punch' ? 5 : 
-                                                this.attackType === 'kick' ? 8 : 12;
-                                    
-                                    opponent.takeDamage(damage);
-                                }
-                            }
-                        },
-                        
-                        takeDamage: function(amount) {
-                            if (!this.isBlocking) {
-                                this.health -= amount;
-                                if (this.health < 0) this.health = 0;
-                                
-                                // Update health bar
-                                if (window.game.uiElements.healthP2) {
-                                    const healthPercent = (this.health / this.maxHealth) * 100;
-                                    window.game.uiElements.healthP2.style.width = `${healthPercent}%`;
-                                }
-                                
-                                console.log(`${this.name} took ${amount} damage, health: ${this.health}`);
-                                return true;
-                            }
-                            console.log(`${this.name} blocked the attack!`);
-                            return false;
-                        }
-                    }
-                ];
+                        isFacingRight: false,
+                        color: '#cc3300',
+                        speed: 5,
+                        jumpPower: 15
+                    });
+                    
+                    console.log("Emergency players created successfully");
+                    return true;
+                },
                 
-                return this;
-            };
-            
-            FightGame.prototype.start = function() {
-                console.log("Starting emergency game");
+                connect: function(elements) {
+                    console.log("Connecting UI elements:", elements);
+                    this.healthBarP1 = elements.healthP1;
+                    this.healthBarP2 = elements.healthP2;
+                    this.timerElement = elements.timer;
+                    this.announcementElement = elements.announcement;
+                    this.roundTextElement = elements.roundText;
+                    this.fightTextElement = elements.fightText;
+                    return true;
+                },
                 
-                // Set up keyboard controls
-                this.setupEventListeners();
-                
-                // Store global reference for easier access from player objects
-                window.game = this;
-                
-                // Update health displays
-                if (this.uiElements.healthP1) {
-                    this.uiElements.healthP1.style.width = '100%';
-                }
-                if (this.uiElements.healthP2) {
-                    this.uiElements.healthP2.style.width = '100%';
-                }
-                
-                // Show round announcement
-                this.showAnnouncement('round');
-                
-                // Start game loop
-                this.lastTime = performance.now();
-                this.animationFrameId = requestAnimationFrame(time => this.gameLoop(time));
-                
-                // Start timer
-                this.startTimer();
-                
-                return this;
-            };
-            
-            FightGame.prototype.showAnnouncement = function(type) {
-                console.log("Showing announcement:", type);
-                if (!this.uiElements.announcement) return;
-                
-                this.uiElements.announcement.style.display = 'flex';
-                
-                if (type === 'round') {
-                    if (this.uiElements.roundText) {
-                        this.uiElements.roundText.textContent = `ROUND ${this.currentRound}`;
-                        this.uiElements.roundText.style.display = 'block';
-                    }
-                    if (this.uiElements.fightText) {
-                        this.uiElements.fightText.style.display = 'none';
+                start: function() {
+                    console.log("Starting emergency game");
+                    this.gameState = 'starting';
+                    
+                    // Reset game state
+                    this.timeRemaining = 99;
+                    this.currentRound = 1;
+                    this.p1Wins = 0;
+                    this.p2Wins = 0;
+                    
+                    // Update timer display
+                    if (this.timerElement) {
+                        this.timerElement.textContent = this.timeRemaining;
                     }
                     
-                    setTimeout(() => {
-                        if (this.uiElements.roundText) this.uiElements.roundText.style.display = 'none';
-                        if (this.uiElements.fightText) this.uiElements.fightText.style.display = 'block';
-                        
-                        setTimeout(() => {
-                            if (this.uiElements.announcement) this.uiElements.announcement.style.display = 'none';
-                            this.gameState = 'fighting';
-                        }, 1000);
-                    }, 1500);
-                }
-            };
-            
-            FightGame.prototype.startTimer = function() {
-                this.timer = 90;
-                this.updateTimerDisplay();
+                    // Setup keyboard input
+                    this.setupEventListeners();
+                    
+                    // Start round
+                    this.startRound();
+                    
+                    // Start game loop
+                    const self = this;
+                    this.animationFrameId = requestAnimationFrame(function(time) {
+                        self.gameLoop(time);
+                    });
+                    
+                    return true;
+                },
                 
-                this.timerInterval = setInterval(() => {
-                    if (this.gameState === 'fighting') {
-                        this.timer--;
-                        this.updateTimerDisplay();
-                        
-                        if (this.timer <= 0) {
-                            clearInterval(this.timerInterval);
-                            // Determine winner based on health
-                            const winner = this.players[0].health > this.players[1].health ? 1 : 2;
-                            this.endRound(winner);
-                        }
+                startRound: function() {
+                    console.log("Starting round", this.currentRound);
+                    this.gameState = 'starting';
+                    
+                    // Reset player positions
+                    if (this.player1) {
+                        this.player1.x = 200;
+                        this.player1.health = this.player1.maxHealth;
                     }
-                }, 1000);
-            };
-            
-            FightGame.prototype.updateTimerDisplay = function() {
-                if (this.uiElements.timer) {
-                    this.uiElements.timer.textContent = this.timer;
-                }
-            };
-            
-            FightGame.prototype.draw = function() {
-                // Clear canvas
-                this.ctx.fillStyle = 'black';
-                this.ctx.fillRect(0, 0, this.width, this.height);
+                    
+                    if (this.player2) {
+                        this.player2.x = 600;
+                        this.player2.health = this.player2.maxHealth;
+                    }
+                    
+                    // Update health display
+                    this.updateHealthDisplay();
+                    
+                    // Show round announcement
+                    this.showRoundAnnouncement();
+                    
+                    // Start timer
+                    this.startTimer();
+                },
                 
-                // Draw background
-                this.drawFallbackBackground();
+                updateHealthDisplay: function() {
+                    if (!this.player1 || !this.player2) return false;
+                    
+                    // Calculate health percentages
+                    const p1HealthPercent = (this.player1.health / this.player1.maxHealth) * 100;
+                    const p2HealthPercent = (this.player2.health / this.player2.maxHealth) * 100;
+                    
+                    // Update health bar for player 1
+                    if (this.healthBarP1) {
+                        this.healthBarP1.style.width = `${p1HealthPercent}%`;
+                    }
+                    
+                    // Update health bar for player 2
+                    if (this.healthBarP2) {
+                        this.healthBarP2.style.width = `${p2HealthPercent}%`;
+                    }
+                    
+                    return true;
+                },
                 
-                // Draw ground line
-                this.ctx.strokeStyle = 'white';
-                this.ctx.lineWidth = 2;
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, this.groundY);
-                this.ctx.lineTo(this.width, this.groundY);
-                this.ctx.stroke();
+                setupEventListeners: function() {
+                    const self = this;
+                    
+                    // Add key handlers
+                    window.addEventListener('keydown', function(e) {
+                        // Update key state
+                        if (e.key.toLowerCase() in self.keys) {
+                            self.keys[e.key.toLowerCase()] = true;
+                        }
+                    });
+                    
+                    window.addEventListener('keyup', function(e) {
+                        // Update key state
+                        if (e.key.toLowerCase() in self.keys) {
+                            self.keys[e.key.toLowerCase()] = false;
+                        }
+                    });
+                },
                 
-                // Draw players
-                if (this.players.length > 0) {
-                    for (let i = 0; i < this.players.length; i++) {
-                        if (this.players[i]) {
-                            this.players[i].draw(this.ctx);
+                handleInput: function() {
+                    if (this.gameState !== 'fighting') return;
+                    
+                    // Handle player 1 movement
+                    if (this.player1) {
+                        // Handle movement
+                        if (this.keys.a) {
+                            this.player1.moveLeft();
+                        } else if (this.keys.d) {
+                            this.player1.moveRight();
                         } else {
-                            console.error(`Player ${i+1} doesn't exist!`);
+                            this.player1.stopMoving();
+                        }
+                        
+                        // Handle jumping
+                        if (this.keys.w && !this.player1.isJumping && this.player1.isGrounded) {
+                            this.player1.jump();
+                        }
+                        
+                        // Handle blocking
+                        if (this.keys.s) {
+                            this.player1.startBlock();
+                        } else {
+                            this.player1.endBlock();
+                        }
+                        
+                        // Handle attacks
+                        if (this.keys.g) {
+                            this.player1.punch();
+                            this.keys.g = false; // Prevent holding down
+                        }
+                        
+                        if (this.keys.h) {
+                            this.player1.kick();
+                            this.keys.h = false; // Prevent holding down
+                        }
+                        
+                        if (this.keys.j) {
+                            this.player1.special();
+                            this.keys.j = false; // Prevent holding down
                         }
                     }
-                }
+                },
                 
-                return this;
-            };
-            
-            FightGame.prototype.drawFallbackBackground = function() {
-                // Draw a simple dojo background
-                const ctx = this.ctx;
-                
-                // Floor
-                ctx.fillStyle = '#4a2511';
-                ctx.fillRect(0, this.groundY, this.width, this.height - this.groundY);
-                
-                // Wall
-                const gradient = ctx.createLinearGradient(0, 0, 0, this.groundY);
-                gradient.addColorStop(0, '#371d0c');
-                gradient.addColorStop(1, '#6b3c1d');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, this.width, this.groundY);
-                
-                // Support beams
-                ctx.fillStyle = '#2e1a09';
-                for (let i = 1; i < 8; i++) {
-                    ctx.fillRect(i * 100, 50, 20, this.groundY - 50);
-                }
-                
-                // Horizontal beams
-                ctx.fillRect(50, 150, this.width - 100, 15);
-                ctx.fillRect(50, 250, this.width - 100, 15);
-            };
-            
-            FightGame.prototype.update = function() {
-                // Update player positions
-                if (this.players.length > 0) {
-                    for (let player of this.players) {
-                        if (player) player.update();
-                    }
-                }
-                
-                // Check if a player's health has reached zero
-                if (this.gameState === 'fighting' && this.players.length >= 2) {
-                    // Check player 1 health
-                    if (this.players[0].health <= 0) {
-                        console.log("Player 1 health depleted - AI opponent wins!");
-                        this.endRound(2); // Player 2 (AI) wins
-                        return this;
+                handleAI: function() {
+                    if (this.gameState !== 'fighting' || !this.useAI || !this.player2) return;
+                    
+                    // Basic AI: move toward player1 and randomly attack
+                    if (Math.random() < 0.02) { // 2% chance to jump
+                        this.player2.jump();
                     }
                     
-                    // Check player 2 health
-                    if (this.players[1].health <= 0) {
-                        console.log("AI opponent health depleted - Player 1 wins!");
-                        this.endRound(1); // Player 1 wins
-                        return this;
+                    // Move toward player
+                    if (this.player2.x > this.player1.x + 100) {
+                        this.player2.moveLeft();
+                    } else if (this.player2.x < this.player1.x - 100) {
+                        this.player2.moveRight();
+                    } else {
+                        // In attack range
+                        const attackChance = Math.random();
+                        
+                        if (attackChance < 0.01) { // 1% chance for special
+                            this.player2.special();
+                        } else if (attackChance < 0.03) { // 2% chance for kick
+                            this.player2.kick();
+                        } else if (attackChance < 0.06) { // 3% chance for punch
+                            this.player2.punch();
+                        } else if (attackChance < 0.08) { // 2% chance to block
+                            this.player2.startBlock();
+                        } else {
+                            this.player2.endBlock();
+                        }
                     }
-                }
+                },
                 
-                return this;
-            };
-            
-            FightGame.prototype.gameLoop = function(currentTime) {
-                this.animationFrameId = requestAnimationFrame(time => this.gameLoop(time));
-                
-                // Calculate elapsed time
-                const elapsed = currentTime - this.lastTime;
-                
-                // Only update at target frame rate
-                if (elapsed > 1000/60) {
-                    this.lastTime = currentTime;
+                update: function() {
+                    if (this.gameState !== 'fighting') return;
                     
-                    // Only update if game is active
-                    if (this.gameState === 'fighting' || this.gameState === 'starting') {
+                    // Update players
+                    if (this.player1) this.player1.update();
+                    if (this.player2) this.player2.update();
+                    
+                    // Check collisions
+                    this.checkCollisions();
+                    
+                    // Check for KO
+                    if (this.player1.health <= 0) {
+                        console.log("Player 2 (AI) wins!");
+                        this.endRound(2);
+                    } else if (this.player2.health <= 0) {
+                        console.log("Player 1 wins!");
+                        this.endRound(1);
+                    }
+                },
+                
+                checkCollisions: function() {
+                    if (!this.player1 || !this.player2) return;
+                    
+                    // Check for attack hitboxes
+                    const p1Hitbox = this.player1.getCurrentHitbox();
+                    const p2Hitbox = this.player2.getCurrentHitbox();
+                    
+                    // Player bounds
+                    const p1Bounds = {
+                        x: this.player1.x - this.player1.width/2,
+                        y: this.player1.y - this.player1.height,
+                        width: this.player1.width,
+                        height: this.player1.height
+                    };
+                    
+                    const p2Bounds = {
+                        x: this.player2.x - this.player2.width/2,
+                        y: this.player2.y - this.player2.height,
+                        width: this.player2.width,
+                        height: this.player2.height
+                    };
+                    
+                    // Check if Player 1's attack hits Player 2
+                    if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds)) {
+                        console.log(`P1 ${this.player1.attackType} hit P2!`);
+                        this.player2.takeDamage(p1Hitbox.damage);
+                        this.updateHealthDisplay();
+                    }
+                    
+                    // Check if Player 2's attack hits Player 1
+                    if (p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds)) {
+                        console.log(`P2 ${this.player2.attackType} hit P1!`);
+                        this.player1.takeDamage(p2Hitbox.damage);
+                        this.updateHealthDisplay();
+                    }
+                },
+                
+                checkOverlap: function(rect1, rect2) {
+                    return (
+                        rect1.x < rect2.x + rect2.width &&
+                        rect1.x + rect1.width > rect2.x &&
+                        rect1.y < rect2.y + rect2.height &&
+                        rect1.y + rect1.height > rect2.y
+                    );
+                },
+                
+                showRoundAnnouncement: function() {
+                    console.log(`Showing round ${this.currentRound} announcement`);
+                    
+                    if (this.announcementElement) {
+                        this.announcementElement.style.display = 'flex';
+                    }
+                    
+                    if (this.roundTextElement) {
+                        this.roundTextElement.textContent = `ROUND ${this.currentRound}`;
+                        this.roundTextElement.style.display = 'block';
+                    }
+                    
+                    const self = this;
+                    // Show fight text after delay
+                    setTimeout(function() {
+                        if (self.roundTextElement) {
+                            self.roundTextElement.style.display = 'none';
+                        }
+                        
+                        if (self.fightTextElement) {
+                            self.fightTextElement.style.display = 'block';
+                        }
+                        
+                        // Hide announcement after delay
+                        setTimeout(function() {
+                            if (self.announcementElement) {
+                                self.announcementElement.style.display = 'none';
+                            }
+                            
+                            if (self.fightTextElement) {
+                                self.fightTextElement.style.display = 'none';
+                            }
+                            
+                            // Change game state to fighting
+                            self.gameState = 'fighting';
+                        }, 1000);
+                    }, 2000);
+                },
+                
+                startTimer: function() {
+                    console.log("Starting timer");
+                    
+                    // Clear any existing timer
+                    if (this.timerInterval) {
+                        clearInterval(this.timerInterval);
+                    }
+                    
+                    // Set initial time and update display
+                    this.timeRemaining = 99;
+                    
+                    if (this.timerElement) {
+                        this.timerElement.textContent = this.timeRemaining;
+                    }
+                    
+                    const self = this;
+                    // Start timer countdown
+                    this.timerInterval = setInterval(function() {
+                        self.timeRemaining--;
+                        
+                        if (self.timerElement) {
+                            self.timerElement.textContent = self.timeRemaining;
+                        }
+                        
+                        if (self.timeRemaining <= 0) {
+                            clearInterval(self.timerInterval);
+                            self.endRound(0); // Time up
+                        }
+                    }, 1000);
+                },
+                
+                endRound: function(winner) {
+                    console.log("Ending round with winner:", winner);
+                    
+                    // Prevent multiple calls to endRound
+                    if (this.gameState === 'roundEnd') {
+                        return;
+                    }
+                    
+                    this.gameState = 'roundEnd';
+                    
+                    // Update win counters
+                    if (winner === 1) {
+                        this.p1Wins++;
+                    } else if (winner === 2) {
+                        this.p2Wins++;
+                    } else {
+                        // Time up - determine winner by health
+                        if (this.player1.health > this.player2.health) {
+                            this.p1Wins++;
+                            winner = 1;
+                        } else if (this.player2.health > this.player1.health) {
+                            this.p2Wins++;
+                            winner = 2;
+                        } else {
+                            // Draw - player 1 wins by default
+                            this.p1Wins++;
+                            winner = 1;
+                        }
+                    }
+                    
+                    // Display the round winner
+                    if (this.announcementElement) {
+                        this.announcementElement.style.display = 'flex';
+                    }
+                    
+                    if (this.roundTextElement) {
+                        this.roundTextElement.textContent = winner === 1 ? 'PLAYER 1 WINS!' : 'AI WINS!';
+                        this.roundTextElement.style.display = 'block';
+                    }
+                    
+                    const self = this;
+                    // Check if match is over
+                    if (this.p1Wins >= 2 || this.p2Wins >= 2) {
+                        // Match over
+                        setTimeout(function() {
+                            // Return to character select
+                            document.getElementById('battle-screen').classList.remove('active');
+                            document.getElementById('character-select').classList.add('active');
+                        }, 3000);
+                    } else {
+                        // Start next round after delay
+                        setTimeout(function() {
+                            // Hide announcement
+                            if (self.announcementElement) {
+                                self.announcementElement.style.display = 'none';
+                            }
+                            
+                            if (self.roundTextElement) {
+                                self.roundTextElement.style.display = 'none';
+                            }
+                            
+                            // Start next round
+                            self.currentRound++;
+                            self.startRound();
+                        }, 3000);
+                    }
+                },
+                
+                draw: function() {
+                    // Clear the canvas
+                    this.ctx.clearRect(0, 0, this.width, this.height);
+                    
+                    // Try to use cached background if available
+                    if (window.emergencyAssets && window.emergencyAssets['dojo_bg.png']) {
+                        const bgImg = new Image();
+                        bgImg.src = window.emergencyAssets['dojo_bg.png'];
+                        
+                        if (bgImg.complete) {
+                            this.ctx.drawImage(bgImg, 0, 0, this.width, this.height);
+                        } else {
+                            // Fallback to gradient
+                            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                            gradient.addColorStop(0, '#331800');
+                            gradient.addColorStop(0.7, '#663300');
+                            gradient.addColorStop(1, '#331800');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fillRect(0, 0, this.width, this.height);
+                        }
+                    } else {
+                        // Draw background from asset or use gradient if not available
+                        const bgImage = new Image();
+                        bgImage.src = 'assets/dojo_bg.png';
+                        
+                        if (bgImage.complete) {
+                            this.ctx.drawImage(bgImage, 0, 0, this.width, this.height);
+                        } else {
+                            // Use gradient background
+                            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                            gradient.addColorStop(0, '#331800');
+                            gradient.addColorStop(0.7, '#663300');
+                            gradient.addColorStop(1, '#331800');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fillRect(0, 0, this.width, this.height);
+                            
+                            // Try to create placeholder for next time
+                            if (typeof createPlaceholder === 'function') {
+                                createPlaceholder('dojo_bg.png', 800, 450, '#331800');
+                            }
+                        }
+                    }
+                    
+                    // Draw ground
+                    this.ctx.fillStyle = '#221100';
+                    this.ctx.fillRect(0, this.groundY, this.width, this.height - this.groundY);
+                    
+                    // Draw players
+                    if (this.player1) this.player1.draw(this.ctx);
+                    if (this.player2) this.player2.draw(this.ctx);
+                    
+                    // Draw hitboxes for debugging if in debug mode
+                    if (window.DEBUG) {
+                        // Draw player 1 hitbox
+                        const p1Hitbox = this.player1?.getCurrentHitbox();
+                        if (p1Hitbox) {
+                            this.ctx.strokeStyle = 'yellow';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.strokeRect(p1Hitbox.x, p1Hitbox.y, p1Hitbox.width, p1Hitbox.height);
+                        }
+                        
+                        // Draw player 2 hitbox
+                        const p2Hitbox = this.player2?.getCurrentHitbox();
+                        if (p2Hitbox) {
+                            this.ctx.strokeStyle = 'cyan';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.strokeRect(p2Hitbox.x, p2Hitbox.y, p2Hitbox.width, p2Hitbox.height);
+                        }
+                        
+                        // Draw player bounds
+                        this.ctx.strokeStyle = 'white';
+                        this.ctx.lineWidth = 1;
+                        if (this.player1) {
+                            this.ctx.strokeRect(
+                                this.player1.x - this.player1.width/2,
+                                this.player1.y - this.player1.height,
+                                this.player1.width,
+                                this.player1.height
+                            );
+                        }
+                        
+                        if (this.player2) {
+                            this.ctx.strokeRect(
+                                this.player2.x - this.player2.width/2,
+                                this.player2.y - this.player2.height,
+                                this.player2.width,
+                                this.player2.height
+                            );
+                        }
+                    }
+                },
+                
+                gameLoop: function(currentTime) {
+                    const self = this;
+                    // Request the next frame
+                    this.animationFrameId = requestAnimationFrame(function(time) {
+                        self.gameLoop(time);
+                    });
+                    
+                    // Calculate elapsed time
+                    const elapsed = currentTime - this.lastTime;
+                    
+                    // Only update if enough time has passed
+                    if (elapsed > this.fpsInterval) {
+                        // Update last time
+                        this.lastTime = currentTime - (elapsed % this.fpsInterval);
+                        
+                        // Handle input
+                        this.handleInput();
+                        
+                        // Handle AI
+                        if (this.useAI) {
+                            this.handleAI();
+                        }
+                        
+                        // Update game state
                         this.update();
+                        
+                        // Draw the current frame
                         this.draw();
                     }
-                }
-            };
-            
-            FightGame.prototype.endRound = function(winnerNum) {
-                console.log(`Round ended - Player ${winnerNum} wins this round`);
-                clearInterval(this.timerInterval);
-                this.gameState = 'roundOver';
+                },
                 
-                // Update wins
-                if (winnerNum === 1) {
-                    this.p1Wins++;
-                    console.log(`Player 1 wins: ${this.p1Wins}`);
-                } else {
-                    this.p2Wins++;
-                    console.log(`Player 2 wins: ${this.p2Wins}`);
-                }
-                
-                // Show round winner announcement
-                if (this.uiElements.announcement && this.uiElements.roundText) {
-                    this.uiElements.announcement.style.display = 'flex';
-                    const winnerName = winnerNum === 1 ? 'PLAYER 1' : 'AI OPPONENT';
-                    this.uiElements.roundText.textContent = `${winnerName} WINS ROUND ${this.currentRound}!`;
-                    this.uiElements.roundText.style.display = 'block';
+                stop: function() {
+                    console.log("Stopping game");
                     
-                    if (this.uiElements.fightText) {
-                        this.uiElements.fightText.style.display = 'none';
-                    }
-                }
-                
-                // Start next round or end game after delay
-                setTimeout(() => {
-                    // Hide round announcement before proceeding
-                    if (this.uiElements.announcement) {
-                        this.uiElements.announcement.style.display = 'none';
+                    if (this.animationFrameId) {
+                        cancelAnimationFrame(this.animationFrameId);
+                        this.animationFrameId = null;
                     }
                     
-                    if (this.p1Wins >= 2 || this.p2Wins >= 2) {
-                        // Game is over - determine final winner
-                        const finalWinner = this.p1Wins >= 2 ? 1 : 2;
-                        this.endGame(finalWinner);
-                    } else {
-                        this.currentRound++;
-                        
-                        // Reset player health and positions before starting next round
-                        if (this.players.length >= 2) {
-                            this.players[0].health = this.players[0].maxHealth;
-                            this.players[1].health = this.players[1].maxHealth;
-                            this.players[0].x = 200;
-                            this.players[1].x = 600;
-                        }
-                        
-                        this.start();
-                    }
-                }, 3000);
-            };
-            
-            FightGame.prototype.endGame = function(winnerNum) {
-                console.log(`Game over - Player ${winnerNum} wins!`);
-                clearInterval(this.timerInterval);
-                cancelAnimationFrame(this.animationFrameId);
-                this.gameState = 'gameOver';
-                
-                // Hide any round announcements that might be showing
-                if (this.uiElements.announcement) {
-                    this.uiElements.announcement.style.display = 'none';
-                }
-                
-                // Show victory screen
-                const winnerText = document.getElementById('winner-text');
-                if (winnerText) {
-                    winnerText.textContent = winnerNum === 1 ? 'PLAYER 1 WINS!' : 'AI OPPONENT WINS!';
-                }
-                
-                // Hide battle screen
-                document.querySelectorAll('.screen').forEach(s => {
-                    s.classList.remove('active');
-                    s.style.display = 'none';
-                });
-                
-                // Show victory screen
-                const victoryScreen = document.getElementById('victory-screen');
-                if (victoryScreen) {
-                    victoryScreen.classList.add('active');
-                    victoryScreen.style.display = 'flex';
-                }
-                
-                // Auto return to character select after 5 seconds
-                setTimeout(() => {
-                    this.returnToCharSelect();
-                }, 5000);
-            };
-            
-            // Add helper method to return to character select screen
-            FightGame.prototype.returnToCharSelect = function() {
-                // Hide all screens
-                document.querySelectorAll('.screen').forEach(s => {
-                    s.classList.remove('active');
-                    s.style.display = 'none';
-                });
-                
-                // Show character select screen
-                const charSelect = document.getElementById('character-select');
-                if (charSelect) {
-                    charSelect.classList.add('active');
-                    charSelect.style.display = 'flex';
-                }
-                
-                // Reset game state
-                this.currentRound = 1;
-                this.p1Wins = 0;
-                this.p2Wins = 0;
-                
-                console.log("Returned to character select screen");
-            };
-            
-            // Add keyboard controls for the player
-            FightGame.prototype.setupEventListeners = function() {
-                console.log("Setting up event listeners for keyboard controls");
-                
-                // Store key states
-                this.keys = {
-                    w: false,
-                    a: false,
-                    s: false,
-                    d: false,
-                    g: false,
-                    h: false,
-                    j: false
-                };
-                
-                // Handle key down events
-                const keyDownHandler = (e) => {
-                    const key = e.key.toLowerCase();
-                    if (this.keys.hasOwnProperty(key)) {
-                        this.keys[key] = true;
-                        console.log(`Key pressed: ${key}`);
-                        
-                        // Immediate actions for attack keys
-                        if (key === 'g' && this.players[0]) {
-                            this.players[0].punch();
-                        } else if (key === 'h' && this.players[0]) {
-                            this.players[0].kick();
-                        } else if (key === 'j' && this.players[0]) {
-                            this.players[0].special();
-                        } else if (key === 'w' && this.players[0]) {
-                            this.players[0].jump();
-                        }
-                    }
-                };
-                
-                // Handle key up events
-                const keyUpHandler = (e) => {
-                    const key = e.key.toLowerCase();
-                    if (this.keys.hasOwnProperty(key)) {
-                        this.keys[key] = false;
-                        
-                        // Handle releasing block key
-                        if (key === 's' && this.players[0]) {
-                            this.players[0].stopBlock();
-                        }
-                    }
-                };
-                
-                // Add event listeners
-                window.addEventListener('keydown', keyDownHandler);
-                window.addEventListener('keyup', keyUpHandler);
-                
-                // Store handlers for cleanup
-                this.keyHandlers = {
-                    keyDown: keyDownHandler,
-                    keyUp: keyUpHandler
-                };
-                
-                console.log("Event listeners set up successfully");
-                return this;
-            };
-            
-            console.log("Emergency FightGame implementation created");
-        }
-        
-        // Verify main.js loaded and initGame is available
-        (function checkMainJsLoaded() {
-            console.log("Checking if main.js loaded correctly...");
-            
-            // Check if initGame function exists
-            if (typeof window.initGame !== 'function') {
-                console.error("⚠️ main.js did not load properly or initGame is not exported to window.");
-                
-                // Create an emergency initGame function
-                window.initGame = function() {
-                    console.error("EMERGENCY initGame function created");
-                    
-                    // Find the canvas element
-                    const canvas = document.getElementById('game-canvas');
-                    if (!canvas) {
-                        console.error("Canvas not found!");
-                        return null;
+                    if (this.timerInterval) {
+                        clearInterval(this.timerInterval);
+                        this.timerInterval = null;
                     }
                     
-                    // Create game instance
-                    try {
-                        const game = new FightGame(canvas, true);
-                        
-                        // Connect UI elements manually
-                        game.connect({
-                            healthP1: document.getElementById('p1-health'),
-                            healthP2: document.getElementById('p2-health'),
-                            timer: document.querySelector('.timer'),
-                            announcement: document.getElementById('round-announcement'),
-                            roundText: document.getElementById('round-text'),
-                            fightText: document.getElementById('fight-text')
-                        });
-                        
-                        console.error("Emergency game created successfully");
-                        return game;
-                    } catch (e) {
-                        console.error("Failed to create emergency game:", e);
-                        return null;
-                    }
-                };
-                
-                console.error("Emergency initGame function created:", typeof window.initGame);
-            } else {
-                console.log("✅ main.js loaded correctly and initGame is available");
-            }
-        })();
-        
-        // Global error handler
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error("GLOBAL ERROR CAUGHT:", message);
-            showErrorOverlay(message, error?.stack, `Error in ${source} at line ${lineno}:${colno}`);
-            return true; // Prevents the browser's default error handling
+                    this.gameState = 'idle';
+                }
+            };
+            
+            console.log("Emergency game instance created successfully");
+            return game;
         };
         
-        // Also catch unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error("UNHANDLED PROMISE REJECTION:", event.reason);
-            showErrorOverlay(
-                "Unhandled Promise Rejection", 
-                event.reason?.stack || event.reason, 
-                "An asynchronous operation failed"
-            );
-        });
-        
-        // Function to display error information
-        function showErrorOverlay(message, stack, context) {
-            const errorOverlay = document.getElementById('error-overlay');
-            const errorMessage = document.getElementById('error-message');
-            const errorStack = document.getElementById('error-stack');
-            const errorContext = document.getElementById('error-context');
-            
-            errorMessage.textContent = message || "Unknown error occurred";
-            errorStack.textContent = stack || "No stack trace available";
-            errorContext.textContent = context || "No additional context available";
-            
-            errorOverlay.style.display = 'block';
+        // Ensure FightGame exists - use our emergency implementation if needed
+        if (typeof FightGame !== 'function') {
+            console.error("🚨 FightGame class not found - Using emergency factory function");
+            window.FightGame = function(canvas, useAI) {
+                return window.createEmergencyGame(canvas, useAI);
+            };
         }
         
-        // Emergency game reset function
-        function resetGameEmergency() {
-            console.log("EMERGENCY GAME RESET ACTIVATED");
+        // Ensure window.initGame exists and works with our emergency implementation
+        if (typeof window.initGame !== 'function') {
+            console.error("🚨 initGame function not found - Creating direct emergency implementation");
             
-            // Clear all animations and timers
-            const highestTimeoutId = setTimeout(";");
-            for (let i = 0; i < highestTimeoutId; i++) {
-                clearTimeout(i);
-            }
-            
-            // Cancel all animation frames
-            const highestAnimationFrame = requestAnimationFrame(function(){});
-            for (let i = 0; i < highestAnimationFrame; i++) {
-                cancelAnimationFrame(i);
-            }
-            
-            // Reset game state
-            window.game = null;
-            
-            // Show character select screen
-            document.querySelectorAll('.screen').forEach(s => {
-                s.style.display = 'none';
-                s.classList.remove('active');
-            });
-            
-            const characterSelect = document.getElementById('character-select');
-            if (characterSelect) {
-                characterSelect.style.display = 'flex';
-                characterSelect.classList.add('active');
-            }
-            
-            // Hide error overlay
-            document.getElementById('error-overlay').style.display = 'none';
-            
-            console.log("Emergency reset completed");
-        }
-        
-        // Ensure gameAssets object exists
-        window.gameAssets = window.gameAssets || {};
-        
-        // Generate the dojo background image immediately
-        (function() {
-            console.log("Generating dojo background image");
-            const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 450;
-            const ctx = canvas.getContext('2d');
-            
-            // Draw dojo floor
-            ctx.fillStyle = '#4a2511'; // wooden floor
-            ctx.fillRect(0, 350, 800, 100); // floor
-            
-            // Draw dojo wall
-            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
-            gradient.addColorStop(0, '#371d0c');
-            gradient.addColorStop(1, '#6b3c1d');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 800, 350); // wall
-            
-            // Draw wooden support beams
-            ctx.fillStyle = '#2e1a09';
-            for (let i = 1; i < 8; i++) {
-                ctx.fillRect(i * 100, 50, 20, 300); // vertical beams
-            }
-            
-            // Horizontal beams
-            ctx.fillRect(50, 150, 700, 15);
-            ctx.fillRect(50, 250, 700, 15);
-            
-            // Draw decorative banners
-            const bannerColors = ['#a32e36', '#2e4b8a', '#4a852e', '#8a2e7e'];
-            for (let i = 0; i < 4; i++) {
-                ctx.fillStyle = bannerColors[i % bannerColors.length];
-                ctx.fillRect(150 + i * 150, 30, 100, 80);
+            window.initGame = function() {
+                console.log("Direct emergency initGame function called");
                 
-                // Banner shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillRect(150 + i * 150, 110, 100, 10);
-                
-                // Banner symbol
-                ctx.fillStyle = '#f0e0d0';
-                ctx.font = '40px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const symbols = ['忍', '侍', '僧', '浪'];
-                ctx.fillText(symbols[i], 200 + i * 150, 70);
-            }
-            
-            // Create window light effects
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            for (let i = 0; i < 3; i++) {
-                ctx.beginPath();
-                ctx.arc(200 + i * 200, 200, 70, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Floor texture
-            for (let i = 0; i < 40; i++) {
-                ctx.fillStyle = i % 2 ? '#593014' : '#4a2511';
-                ctx.fillRect(i * 20, 380, 20, 70);
-            }
-            
-            // Set to gameAssets
-            const dojoImage = canvas.toDataURL('image/png');
-            window.gameAssets['dojo_bg.png'] = dojoImage;
-            console.log("Dojo background generated and saved to gameAssets");
-            
-            // Also update any elements using this background
-            const titleScreen = document.getElementById('title-screen');
-            if (titleScreen) {
-                titleScreen.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('${dojoImage}')`;
-            }
-        })();
-        
-        // Debug function to check screen visibility after page load
-        setTimeout(() => {
-            console.log("SCREEN VISIBILITY CHECK:");
-            document.querySelectorAll('.screen').forEach(screen => {
-                const isActive = screen.classList.contains('active');
-                const displayStyle = window.getComputedStyle(screen).display;
-                console.log(`Screen ${screen.id}: active=${isActive}, display=${displayStyle}`);
-            });
-            
-            // Try to force the character select screen to show if start button is clicked
-            document.getElementById('start-btn')?.addEventListener('click', function(e) {
-                console.log("Emergency click handler activated");
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Force all screens to hide
-                document.querySelectorAll('.screen').forEach(s => {
-                    s.style.display = 'none';
-                    s.classList.remove('active');
-                });
-                
-                // Show character select
-                const charSelect = document.getElementById('character-select');
-                if (charSelect) {
-                    charSelect.style.display = 'flex';
-                    charSelect.classList.add('active');
-                    console.log("Character select screen forced to show");
-                } else {
-                    console.error("Character select screen not found!");
+                try {
+                    // Get the canvas element
+                    const canvas = document.getElementById('game-canvas');
+                    if (!canvas) {
+                        console.error("❌ Game canvas not found");
+                        return null;
+                    }
+                    
+                    // Create fight game instance - use emergency implementation
+                    const game = window.createEmergencyGame(canvas, true);
+                    
+                    // Connect UI elements
+                    game.connect({
+                        healthP1: document.getElementById('p1-health'),
+                        healthP2: document.getElementById('p2-health'),
+                        timer: document.querySelector('.timer'),
+                        announcement: document.getElementById('round-announcement'),
+                        roundText: document.getElementById('round-text'),
+                        fightText: document.getElementById('fight-text')
+                    });
+                    
+                    console.log("✅ Emergency game initialization successful");
+                    
+                    // Save as global reference
+                    window.game = game;
+                    
+                    return game;
+                } catch (e) {
+                    console.error("❌ Error in emergency initGame:", e);
+                    
+                    // Show error message
+                    const canvas = document.getElementById('game-canvas');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = 'red';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '24px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('ERROR: Game init failed', canvas.width/2, canvas.height/2 - 50);
+                        ctx.fillText(e.message, canvas.width/2, canvas.height/2);
+                        ctx.fillText('Press F2 to try character creation', canvas.width/2, canvas.height/2 + 50);
+                        ctx.fillText('Press F3 to test canvas', canvas.width/2, canvas.height/2 + 100);
+                    }
+                    
+                    return null;
                 }
-                
-                return false;
-            }, true);
-        }, 1000);
+            };
+            
+            console.log("Emergency initGame function created successfully");
+        }
         
-        // Emergency fix for character selection and missing assets
-        document.addEventListener("DOMContentLoaded", function() {
+        // Function to show character selection
+        function showCharSelect() {
+            document.getElementById('title-screen').classList.remove('active');
+            document.getElementById('character-select').classList.add('active');
+            
+            // Pre-generate background immediately on character select
+            createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#331800');
+        }
+        
+        // Expose showCharSelect globally
+        window.showCharSelect = showCharSelect;
+        
+        // Load handlers for character selection
+        document.addEventListener('DOMContentLoaded', function() {
             // Create dojo background if missing
             createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#003366');
             
@@ -1379,6 +1171,15 @@
                 createPlaceholder(filename, width, height, color);
             };
             testImg.src = `assets/${filename}`;
+            
+            // Force pre-create placeholder after a short timeout
+            // This ensures we have a placeholder even if the image load is delayed
+            setTimeout(function() {
+                if (!testImg.complete || testImg.naturalWidth === 0) {
+                    console.log(`Pre-creating placeholder for: ${filename}`);
+                    createPlaceholder(filename, width, height, color);
+                }
+            }, 100);
         }
         
         function createPlaceholder(filename, width, height, color) {
@@ -1394,12 +1195,34 @@
             ctx.fillStyle = color;
             ctx.fillRect(0, 0, width, height);
             
-            // Add text label
-            ctx.fillStyle = 'white';
-            ctx.font = `${Math.min(width, height) / 8}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(filename, width / 2, height / 2);
+            // For background, add some simple design
+            if (filename === 'dojo_bg.png') {
+                // Draw dojo floor
+                ctx.fillStyle = '#221100';
+                ctx.fillRect(0, height - 100, width, 100);
+                
+                // Draw some background elements
+                ctx.fillStyle = '#552200';
+                ctx.fillRect(50, 50, 100, 300);
+                ctx.fillRect(650, 50, 100, 300);
+                
+                // Add some texture
+                ctx.strokeStyle = '#662200';
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 10; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * 45);
+                    ctx.lineTo(width, i * 45);
+                    ctx.stroke();
+                }
+            } else {
+                // Add text label for other images
+                ctx.fillStyle = 'white';
+                ctx.font = `${Math.min(width, height) / 8}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(filename, width / 2, height / 2);
+            }
             
             // Convert to data URL
             const dataUrl = canvas.toDataURL('image/png');
@@ -1408,6 +1231,12 @@
             if (window.gameAssets) {
                 window.gameAssets[filename] = dataUrl;
             }
+            
+            // Create a global cache of assets
+            if (!window.emergencyAssets) {
+                window.emergencyAssets = {};
+            }
+            window.emergencyAssets[filename] = dataUrl;
             
             // Preload the image
             const img = new Image();
@@ -1420,6 +1249,18 @@
             
             return dataUrl;
         }
+
+        // Initialize emergency assets immediately
+        document.addEventListener('DOMContentLoaded', function() {
+            // Preload key assets
+            createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#331800');
+            createPlaceholderIfMissing('ninja_portrait.png', 80, 80, getCharColor('ninja'));
+            createPlaceholderIfMissing('samurai_portrait.png', 80, 80, getCharColor('samurai'));
+            createPlaceholderIfMissing('monk_portrait.png', 80, 80, getCharColor('monk'));
+            createPlaceholderIfMissing('ronin_portrait.png', 80, 80, getCharColor('ronin'));
+            
+            console.log("Emergency assets preloaded");
+        });
 
         // EMERGENCY DIRECT FIGHT BUTTON HANDLER
         document.getElementById('fight-btn').onclick = function() {

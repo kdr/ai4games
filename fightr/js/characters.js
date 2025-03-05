@@ -30,7 +30,8 @@ function Character(options = {}) {
             frameCount: 5,
             hitFrame: 2,
             cooldown: 30,
-            hitbox: { x: 50, y: 40, width: 40, height: 20 }
+            hitbox: { x: 50, y: 40, width: 40, height: 20 },
+            allowMovement: false
         },
         
         kick: {
@@ -38,7 +39,8 @@ function Character(options = {}) {
             frameCount: 6,
             hitFrame: 3,
             cooldown: 45,
-            hitbox: { x: 40, y: 90, width: 55, height: 30 }
+            hitbox: { x: 40, y: 90, width: 55, height: 30 },
+            allowMovement: false
         },
         
         special: {
@@ -46,7 +48,8 @@ function Character(options = {}) {
             frameCount: 8,
             hitFrame: 5,
             cooldown: 60,
-            hitbox: { x: 20, y: 30, width: 80, height: 80 }
+            hitbox: { x: 20, y: 30, width: 80, height: 80 },
+            allowMovement: true
         }
     };
     
@@ -235,11 +238,21 @@ Character.prototype.update = function() {
         this.vy += this.gravity;
     }
     
-    // Horizontal movement
-    this.x += this.vx;
+    // Horizontal movement - only apply if not attacking or if this is an intentional attack movement
+    if (!this.isAttacking || (this.attackType && this.attacks[this.attackType].allowMovement)) {
+        this.x += this.vx;
+    } else if (this.isAttacking) {
+        // While attacking, reduce any horizontal movement to prevent sliding/jumping
+        this.vx *= 0.8;
+    }
     
-    // Vertical movement
-    this.y += this.vy;
+    // Vertical movement - only allow jumping, not arbitrary position changes during attacks
+    if (!this.isAttacking || this.isJumping) {
+        this.y += this.vy;
+    } else {
+        // While attacking on the ground, ensure we stay on the ground
+        this.vy = 0;
+    }
     
     // If we hit the ground, stop falling
     if (this.y > 350) {
