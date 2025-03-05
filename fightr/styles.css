@@ -332,20 +332,36 @@ button:disabled {
     margin: 8px 0;
 }
 
+/* Controls button */
 .controls-button {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: rgba(50, 50, 50, 0.8);
+    background-color: #ff3019;
     color: white;
     padding: 10px 15px;
     border: none;
-    cursor: pointer;
     border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
     font-size: 14px;
-    z-index: 50;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.2s;
 }
 
 .controls-button:hover {
-    background: rgba(80, 80, 80, 0.8);
+    background-color: #c72100;
+}
+
+/* Audio button specific styles */
+#audio-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+#audio-icon {
+    font-size: 16px;
 } 

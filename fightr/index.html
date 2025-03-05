@@ -172,6 +172,59 @@
 
     <button id="controls-btn" class="controls-button">Controls</button>
 
+    <!-- Audio Controls Button -->
+    <button id="audio-btn" class="controls-button" style="right: 110px; background: #44f; color: white; font-weight: bold; padding: 10px 15px; border: 2px solid white;" onclick="window.toggleAudio()">
+        <span id="audio-icon">🔇</span> Music
+    </button>
+
+    <!-- Direct Audio Players (visible for debugging) -->
+    <div id="audio-debug" style="position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: white;">
+        <h3 style="margin: 0 0 5px 0; font-size: 14px;">DEBUG AUDIO <button id="hide-audio-debug" style="padding: 2px 5px; margin-left: 5px; font-size: 10px; background: #f33; border: none; color: white; border-radius: 3px; cursor: pointer;">Hide</button></h3>
+        <div>
+            <label>Intro: </label>
+            <audio id="debug-intro" controls src="assets/intro.mp3" style="height: 20px;"></audio>
+            <button onclick="document.getElementById('debug-intro').play()">Play</button>
+        </div>
+        <div style="margin-top: 5px;">
+            <label>Select: </label>
+            <audio id="debug-select" controls src="assets/select.mp3" style="height: 20px;"></audio>
+            <button onclick="document.getElementById('debug-select').play()">Play</button>
+        </div>
+        <div style="margin-top: 5px;">
+            <label>Battle: </label>
+            <audio id="debug-battle" controls src="assets/battle.mp3" style="height: 20px;"></audio>
+            <button onclick="document.getElementById('debug-battle').play()">Play</button>
+        </div>
+        
+        <!-- Force Audio State Buttons -->
+        <div style="margin-top: 10px; border-top: 1px solid #666; padding-top: 10px;">
+            <button onclick="document.getElementById('audio-icon').textContent='🔊'; console.log('Forced audio icon to ON');" 
+                    style="background: #4c4; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: black;">
+                Force Audio ON (🔊)
+            </button>
+            <button onclick="document.getElementById('audio-icon').textContent='🔇'; console.log('Forced audio icon to OFF');" 
+                    style="background: #f44; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: black; margin-left: 5px;">
+                Force Audio OFF (🔇)
+            </button>
+        </div>
+        
+        <!-- Direct Toggle Audio Button -->
+        <div style="margin-top: 10px;">
+            <button onclick="if(window.toggleAudio) { window.toggleAudio(); } else { console.error('toggleAudio function not found!'); }"
+                    style="background: #44f; padding: 8px 15px; border: none; border-radius: 3px; cursor: pointer; color: white; font-weight: bold; width: 100%;">
+                DIRECT TOGGLE AUDIO FUNCTION CALL
+            </button>
+        </div>
+        
+        <!-- Check Audio State Button -->
+        <div style="margin-top: 5px;">
+            <button onclick="const icon = document.getElementById('audio-icon'); console.log('Current audio icon:', icon ? icon.textContent : 'not found'); alert('Current audio state: ' + (icon && icon.textContent === '🔊' ? 'ON (🔊)' : 'OFF (🔇)'));"
+                    style="background: #f90; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: black; width: 100%;">
+                Check Audio State
+            </button>
+        </div>
+    </div>
+
     <!-- Emergency Error Display Overlay -->
     <div id="error-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; color: white; font-family: monospace; overflow: auto; padding: 20px; box-sizing: border-box;">
         <div style="max-width: 800px; margin: 0 auto; background: #300; padding: 20px; border-radius: 5px;">
@@ -1270,6 +1323,11 @@
             document.getElementById('title-screen').classList.remove('active');
             document.getElementById('character-select').classList.add('active');
             
+            // Play character select music
+            if (window.AudioManager) {
+                window.AudioManager.playTrack('select');
+            }
+            
             // Pre-generate background immediately on character select
             createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#331800');
         }
@@ -1346,488 +1404,92 @@
             
             // Add direct fight button handler
             document.getElementById('fight-btn')?.addEventListener('click', function() {
-                console.log("Direct fight button click");
+                console.error("🔴 EMERGENCY DIRECT FIGHT BUTTON HANDLER");
+                
+                // Force character selection if none
+                if (!window.p1Character) window.p1Character = 'ninja';
+                if (!window.p2Character) window.p2Character = 'samurai';
+                
+                // Hide all screens
                 document.querySelectorAll('.screen').forEach(s => {
                     s.style.display = 'none';
                     s.classList.remove('active');
                 });
                 
+                // Show battle screen
                 const battleScreen = document.getElementById('battle-screen');
-                if (battleScreen) {
+                battleScreen.style.display = 'flex';
+                battleScreen.classList.add('active');
+                console.error("Battle screen forcibly displayed");
+                
+                // Play battle music - check audio icon directly
+                const audioIcon = document.getElementById('audio-icon');
+                const audioEnabled = audioIcon && audioIcon.textContent === '🔊';
+                
+                console.log("Audio state when fight button clicked:", audioEnabled ? "ON" : "OFF", 
+                            "Icon:", audioIcon ? audioIcon.textContent : "not found");
+                
+                if (audioEnabled && window.AudioManager) {
+                    console.log("Playing battle music (audio enabled)");
+                    window.AudioManager.playTrack('battle');
+                } else {
+                    console.log("Audio is disabled or AudioManager not available, not playing battle music");
+                }
+            });
+        });
+    </script>
+    
+    <!-- Direct FIGHT button handler -->
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Setting up direct FIGHT button handler");
+            
+            const fightBtn = document.getElementById('fight-btn');
+            if (fightBtn) {
+                // Remove any existing onclick handlers
+                fightBtn.removeAttribute('onclick');
+                
+                // Add new event listener
+                fightBtn.addEventListener('click', function() {
+                    console.error("🔴 EMERGENCY DIRECT FIGHT BUTTON HANDLER");
+                    
+                    // Force character selection if none
+                    if (!window.p1Character) window.p1Character = 'ninja';
+                    if (!window.p2Character) window.p2Character = 'samurai';
+                    
+                    // Hide all screens
+                    document.querySelectorAll('.screen').forEach(s => {
+                        s.style.display = 'none';
+                        s.classList.remove('active');
+                    });
+                    
+                    // Show battle screen
+                    const battleScreen = document.getElementById('battle-screen');
                     battleScreen.style.display = 'flex';
                     battleScreen.classList.add('active');
-                }
-                
-                // Initialize the game if it exists
-                if (typeof initGame === 'function') {
-                    const game = initGame();
-                    if (game && window.p1Character && window.p2Character) {
-                        game.setPlayers(window.p1Character, window.p2Character);
-                        game.start();
-                    }
-                }
-            });
-            
-            // Add event listener for character-select button on victory screen
-            document.getElementById('character-select-btn')?.addEventListener('click', function() {
-                console.log("Character select button clicked");
-                if (window.game && typeof window.game.returnToCharSelect === 'function') {
-                    window.game.returnToCharSelect();
-                } else {
-                    // Fallback if game object doesn't exist
-                    document.querySelectorAll('.screen').forEach(s => {
-                        s.classList.remove('active');
-                        s.style.display = 'none';
-                    });
+                    console.error("Battle screen forcibly displayed");
                     
-                    const charSelect = document.getElementById('character-select');
-                    if (charSelect) {
-                        charSelect.classList.add('active');
-                        charSelect.style.display = 'flex';
+                    // Play battle music - check audio icon directly
+                    const audioIcon = document.getElementById('audio-icon');
+                    const audioEnabled = audioIcon && audioIcon.textContent === '🔊';
+                    
+                    console.log("Audio state when fight button clicked:", audioEnabled ? "ON" : "OFF", 
+                                "Icon:", audioIcon ? audioIcon.textContent : "not found");
+                    
+                    if (audioEnabled && window.AudioManager) {
+                        console.log("Playing battle music (audio enabled)");
+                        window.AudioManager.playTrack('battle');
+                    } else {
+                        console.log("Audio is disabled or AudioManager not available, not playing battle music");
                     }
-                }
-            });
-        });
-        
-        // Helper functions for character data and placeholders
-        function getCharName(character) {
-            const names = {
-                ninja: 'Ninja',
-                samurai: 'Samurai',
-                monk: 'Monk',
-                ronin: 'Ronin'
-            };
-            return names[character] || character.charAt(0).toUpperCase() + character.slice(1);
-        }
-        
-        function getCharColor(character) {
-            const colors = {
-                ninja: '#4299e1',   // Blue
-                samurai: '#e53e3e', // Red
-                monk: '#ecc94b',    // Yellow
-                ronin: '#48bb78'    // Green
-            };
-            return colors[character] || '#888888';
-        }
-        
-        function createPlaceholderIfMissing(filename, width, height, color) {
-            // Create a test image to see if the file exists
-            const testImg = new Image();
-            testImg.onerror = function() {
-                console.log(`Creating placeholder for missing asset: ${filename}`);
-                createPlaceholder(filename, width, height, color);
-            };
-            testImg.src = `assets/${filename}`;
-            
-            // Force pre-create placeholder after a short timeout
-            // This ensures we have a placeholder even if the image load is delayed
-            setTimeout(function() {
-                if (!testImg.complete || testImg.naturalWidth === 0) {
-                    console.log(`Pre-creating placeholder for: ${filename}`);
-                    createPlaceholder(filename, width, height, color);
-                }
-            }, 100);
-        }
-        
-        function createPlaceholder(filename, width, height, color) {
-            // Create canvas element
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Get drawing context
-            const ctx = canvas.getContext('2d');
-            
-            // Draw background
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, width, height);
-            
-            // For background, add some simple design
-            if (filename === 'dojo_bg.png') {
-                // Draw dojo floor
-                ctx.fillStyle = '#221100';
-                ctx.fillRect(0, height - 100, width, 100);
-                
-                // Draw some background elements
-                ctx.fillStyle = '#552200';
-                ctx.fillRect(50, 50, 100, 300);
-                ctx.fillRect(650, 50, 100, 300);
-                
-                // Add some texture
-                ctx.strokeStyle = '#662200';
-                ctx.lineWidth = 3;
-                for (let i = 0; i < 10; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, i * 45);
-                    ctx.lineTo(width, i * 45);
-                    ctx.stroke();
-                }
-            } else {
-                // Add text label for other images
-                ctx.fillStyle = 'white';
-                ctx.font = `${Math.min(width, height) / 8}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(filename, width / 2, height / 2);
-            }
-            
-            // Convert to data URL
-            const dataUrl = canvas.toDataURL('image/png');
-            
-            // Store in gameAssets if available
-            if (window.gameAssets) {
-                window.gameAssets[filename] = dataUrl;
-            }
-            
-            // Create a global cache of assets
-            if (!window.emergencyAssets) {
-                window.emergencyAssets = {};
-            }
-            window.emergencyAssets[filename] = dataUrl;
-            
-            // Preload the image
-            const img = new Image();
-            img.src = dataUrl;
-            
-            // Replace all existing img elements with this src
-            document.querySelectorAll(`img[src="assets/${filename}"]`).forEach(imgEl => {
-                imgEl.src = dataUrl;
-            });
-            
-            return dataUrl;
-        }
-
-        // Initialize emergency assets immediately
-        document.addEventListener('DOMContentLoaded', function() {
-            // Preload key assets
-            createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#331800');
-            createPlaceholderIfMissing('ninja_portrait.png', 80, 80, getCharColor('ninja'));
-            createPlaceholderIfMissing('samurai_portrait.png', 80, 80, getCharColor('samurai'));
-            createPlaceholderIfMissing('monk_portrait.png', 80, 80, getCharColor('monk'));
-            createPlaceholderIfMissing('ronin_portrait.png', 80, 80, getCharColor('ronin'));
-            
-            console.log("Emergency assets preloaded");
-            
-            // Setup controls button handler
-            const controlsBtn = document.getElementById('controls-btn');
-            const controlsOverlay = document.getElementById('controls-overlay');
-            const closeControlsBtn = document.getElementById('close-controls');
-            
-            if (controlsBtn && controlsOverlay) {
-                controlsBtn.addEventListener('click', function() {
-                    console.log("Controls button clicked");
-                    controlsOverlay.style.display = 'flex';
+                    
+                    return false; // Prevent default action
                 });
                 
-                if (closeControlsBtn) {
-                    closeControlsBtn.addEventListener('click', function() {
-                        controlsOverlay.style.display = 'none';
-                    });
-                }
-            }
-        });
-
-        // EMERGENCY DIRECT FIGHT BUTTON HANDLER
-        document.getElementById('fight-btn').onclick = function() {
-            console.error("🔴 EMERGENCY DIRECT FIGHT BUTTON HANDLER");
-            
-            // Force character selection if none
-            if (!window.p1Character) window.p1Character = 'ninja';
-            if (!window.p2Character) window.p2Character = 'samurai';
-            
-            // Hide all screens
-            document.querySelectorAll('.screen').forEach(s => {
-                s.style.display = 'none';
-                s.classList.remove('active');
-            });
-            
-            // Show battle screen
-            const battleScreen = document.getElementById('battle-screen');
-            battleScreen.style.display = 'flex';
-            battleScreen.classList.add('active');
-            console.error("Battle screen forcibly displayed");
-            
-            // Initialize canvas
-            const canvas = document.getElementById('game-canvas');
-            canvas.width = 800;
-            canvas.height = 450;
-            canvas.style.border = '3px solid red';
-            canvas.style.background = 'black';
-            canvas.style.display = 'block';
-            
-            // Draw something to show canvas is working
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'green';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Create text showing canvas is working
-            ctx.fillStyle = 'white';
-            ctx.font = '24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('CANVAS IS WORKING', canvas.width/2, canvas.height/2 - 50);
-            ctx.fillText('Game should start shortly...', canvas.width/2, canvas.height/2);
-            
-            // Try to start game
-            setTimeout(function() {
-                try {
-                    console.error("Attempting to initialize game directly");
-                    if (typeof window.initGame === 'function') {
-                        console.error("Window.initGame function found!");
-                        const game = window.initGame();
-                        if (game) {
-                            game.setPlayers(window.p1Character || 'ninja', window.p2Character || 'samurai');
-                            game.start();
-                            console.error("Game started via emergency handler");
-                            
-                            // Add direct message on screen
-                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                            ctx.fillRect(0, 0, canvas.width, 50);
-                            ctx.fillStyle = 'white';
-                            ctx.fillText('Game successfully started! Fight!', canvas.width/2, 30);
-                        } else {
-                            console.error("Game initialization failed");
-                            ctx.fillStyle = 'red';
-                            ctx.fillRect(0, 0, canvas.width, canvas.height);
-                            ctx.fillStyle = 'white';
-                            ctx.fillText('ERROR: Game init failed', canvas.width/2, canvas.height/2);
-                            ctx.fillText('Press F2 to try character creation', canvas.width/2, canvas.height/2 + 40);
-                            ctx.fillText('Press F3 to test canvas', canvas.width/2, canvas.height/2 + 80);
-                        }
-                    } else {
-                        console.error("initGame function not found");
-                        ctx.fillStyle = 'red';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = 'white';
-                        ctx.fillText('ERROR: initGame function not found', canvas.width/2, canvas.height/2);
-                        
-                        // List all available functions in window
-                        let availableFunctions = [];
-                        for (let prop in window) {
-                            if (typeof window[prop] === 'function') {
-                                availableFunctions.push(prop);
-                            }
-                        }
-                        console.error("Available window functions:", availableFunctions.join(', '));
-                        
-                        // Check if main.js was actually loaded
-                        const scripts = document.querySelectorAll('script');
-                        let mainJsLoaded = false;
-                        scripts.forEach(script => {
-                            if (script.src && script.src.includes('main.js')) {
-                                mainJsLoaded = script.complete;
-                                console.error("main.js load status:", mainJsLoaded ? "LOADED" : "FAILED");
-                            }
-                        });
-                        
-                        ctx.fillText('Try refreshing the page', canvas.width/2, canvas.height/2 + 40);
-                        ctx.fillText('Check browser console for detailed errors', canvas.width/2, canvas.height/2 + 80);
-                    }
-                } catch (e) {
-                    console.error("CRITICAL ERROR:", e);
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = 'white';
-                    ctx.fillText('CRITICAL ERROR: ' + e.message, canvas.width/2, canvas.height/2);
-                    ctx.fillText(e.stack.split('\n')[1] || '', canvas.width/2, canvas.height/2 + 40);
-                }
-            }, 500);
-            
-            return false;
-        };
-
-        // Last chance emergency fixes if something goes wrong
-        window.addEventListener('keydown', function(e) {
-            // Press F1 key for emergency game reset
-            if (e.key === 'F1') {
-                console.error("🆘 EMERGENCY KEY ACTIVATED: F1 - Game Reset");
-                resetGameEmergency();
-            }
-            
-            // Press F2 key for emergency character creation
-            if (e.key === 'F2') {
-                console.error("🆘 EMERGENCY KEY ACTIVATED: F2 - Force Character Creation");
-                
-                // Create a simple visible Character class if it doesn't exist
-                if (typeof Character !== 'function') {
-                    console.error("Creating emergency Character class");
-                    
-                    window.Character = function(options) {
-                        this.name = options.name || 'unknown';
-                        this.x = options.x || 0;
-                        this.y = options.y || 0;
-                        this.width = options.width || 80;
-                        this.height = options.height || 150;
-                        this.facingRight = options.facingRight !== false;
-                        this.health = options.health || 100;
-                        this.maxHealth = options.maxHealth || 100;
-                        this.color = options.color || '#' + Math.floor(Math.random()*16777215).toString(16);
-                        
-                        console.error(`Created emergency Character: ${this.name}`);
-                    };
-                    
-                    // Add required methods
-                    Character.prototype.update = function() { return true; };
-                    Character.prototype.draw = function(ctx) {
-                        ctx.fillStyle = this.color;
-                        ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
-                        ctx.fillStyle = 'white';
-                        ctx.font = '16px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(this.name, this.x, this.y - this.height - 10);
-                        return true;
-                    };
-                    Character.prototype.takeDamage = function() { return false; };
-                    
-                    alert("Emergency Character class created. Try fighting again!");
-                }
-                
-                // Force game initialization
-                try {
-                    if (typeof window.initGame === 'function') {
-                        console.error("Using window.initGame function");
-                        window.game = window.initGame();
-                        
-                        if (window.game) {
-                            // Show battle screen
-                            document.querySelectorAll('.screen').forEach(s => {
-                                s.style.display = 'none';
-                                s.classList.remove('active');
-                            });
-                            
-                            const battleScreen = document.getElementById('battle-screen');
-                            if (battleScreen) {
-                                battleScreen.style.display = 'flex';
-                                battleScreen.classList.add('active');
-                            }
-                            
-                            // Set players
-                            window.game.setPlayers('ninja', 'samurai');
-                            window.game.start();
-                            
-                            alert("Emergency game initialization complete!");
-                        } else {
-                            // Try one last direct approach
-                            console.error("Game initialization failed. Trying direct FightGame creation");
-                            
-                            const canvas = document.getElementById('game-canvas');
-                            if (canvas && typeof FightGame === 'function') {
-                                window.game = new FightGame(canvas, true);
-                                
-                                // Show battle screen
-                                document.querySelectorAll('.screen').forEach(s => {
-                                    s.style.display = 'none';
-                                    s.classList.remove('active');
-                                });
-                                
-                                const battleScreen = document.getElementById('battle-screen');
-                                if (battleScreen) {
-                                    battleScreen.style.display = 'flex';
-                                    battleScreen.classList.add('active');
-                                }
-                                
-                                // Connect UI elements manually
-                                window.game.connect({
-                                    healthP1: document.getElementById('p1-health'),
-                                    healthP2: document.getElementById('p2-health'),
-                                    timer: document.querySelector('.timer'),
-                                    announcement: document.getElementById('round-announcement'),
-                                    roundText: document.getElementById('round-text'),
-                                    fightText: document.getElementById('fight-text')
-                                });
-                                
-                                // Set players and start
-                                window.game.setPlayers('ninja', 'samurai');
-                                window.game.start();
-                                
-                                alert("Direct game initialization successful!");
-                            } else {
-                                alert("Critical error: Cannot initialize game!");
-                            }
-                        }
-                    } else {
-                        console.error("window.initGame function not available. Trying direct FightGame creation");
-                        
-                        // Try direct approach anyway
-                        const canvas = document.getElementById('game-canvas');
-                        if (canvas && typeof FightGame === 'function') {
-                            window.game = new FightGame(canvas, true);
-                            
-                            // Show battle screen
-                            document.querySelectorAll('.screen').forEach(s => {
-                                s.style.display = 'none';
-                                s.classList.remove('active');
-                            });
-                            
-                            const battleScreen = document.getElementById('battle-screen');
-                            if (battleScreen) {
-                                battleScreen.style.display = 'flex';
-                                battleScreen.classList.add('active');
-                            }
-                            
-                            // Connect UI elements manually
-                            if (typeof window.game.connect === 'function') {
-                                window.game.connect({
-                                    healthP1: document.getElementById('p1-health'),
-                                    healthP2: document.getElementById('p2-health'),
-                                    timer: document.querySelector('.timer'),
-                                    announcement: document.getElementById('round-announcement'),
-                                    roundText: document.getElementById('round-text'),
-                                    fightText: document.getElementById('fight-text')
-                                });
-                            }
-                            
-                            // Set players and start
-                            window.game.setPlayers('ninja', 'samurai');
-                            window.game.start();
-                            
-                            alert("Direct game initialization successful!");
-                        } else {
-                            alert("Critical error: FightGame class not available!");
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error during emergency initialization:", e);
-                    alert("Emergency initialization failed: " + e.message);
-                }
-            }
-            
-            // Press F3 key to force a test draw on canvas
-            if (e.key === 'F3') {
-                console.error("🆘 EMERGENCY KEY ACTIVATED: F3 - Canvas Test");
-                
-                // Get canvas and test drawing
-                const canvas = document.getElementById('game-canvas');
-                if (canvas) {
-                    try {
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Clear canvas
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        // Draw test pattern
-                        ctx.fillStyle = 'red';
-                        ctx.fillRect(100, 100, 200, 200);
-                        ctx.fillStyle = 'green';
-                        ctx.fillRect(300, 100, 200, 200);
-                        ctx.fillStyle = 'blue';
-                        ctx.fillRect(500, 100, 200, 200);
-                        
-                        // Draw text
-                        ctx.fillStyle = 'white';
-                        ctx.font = '24px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('CANVAS TEST SUCCESSFUL', canvas.width/2, 50);
-                        ctx.fillText('Press F2 to create characters', canvas.width/2, 350);
-                        
-                        alert("Canvas test complete - check if colors are visible");
-                    } catch (e) {
-                        console.error("Canvas test failed:", e);
-                        alert("Canvas test failed: " + e.message);
-                    }
-                } else {
-                    alert("Canvas element not found!");
-                }
+                console.log("FIGHT button handler setup complete");
+            } else {
+                console.error("FIGHT button not found in DOM");
             }
         });
     </script>

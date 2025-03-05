@@ -30,6 +30,255 @@ const CHARACTERS = {
     }
 };
 
+// Audio Manager for background music
+const AudioManager = {
+    currentTrack: null,
+    tracks: {},
+    initialized: false,
+    
+    // Initialize audio settings
+    init() {
+        console.log('AudioManager: Initializing using HTML audio elements...');
+        
+        try {
+            // Instead of creating new Audio objects, reference the existing HTML audio elements
+            this.tracks = {
+                intro: document.getElementById('debug-intro'),
+                select: document.getElementById('debug-select'),
+                battle: document.getElementById('debug-battle')
+            };
+            
+            if (!this.tracks.intro || !this.tracks.select || !this.tracks.battle) {
+                console.error('AudioManager: Could not find HTML audio elements');
+                return;
+            }
+            
+            // Configure all tracks
+            for (const [name, track] of Object.entries(this.tracks)) {
+                console.log(`AudioManager: Setting up ${name} track`);
+                
+                // Set loop property
+                track.loop = true;
+                
+                // Set volume
+                track.volume = 0.7;
+                
+                // Hide the controls since we'll manage playback
+                // track.controls = false;
+            }
+            
+            this.initialized = true;
+            console.log('AudioManager: Initialization complete using HTML elements');
+            
+        } catch (e) {
+            console.error('AudioManager: Initialization error:', e);
+        }
+    },
+    
+    // Play a specific track
+    playTrack(trackName) {
+        console.log(`AudioManager: Attempting to play ${trackName} track`);
+        
+        if (!this.initialized) {
+            console.error('AudioManager: Cannot play track, not initialized');
+            return;
+        }
+        
+        // Stop current track if playing
+        if (this.currentTrack) {
+            console.log(`AudioManager: Stopping current track`);
+            this.currentTrack.pause();
+            this.currentTrack.currentTime = 0;
+        }
+        
+        // Set and play new track
+        this.currentTrack = this.tracks[trackName];
+        
+        if (this.currentTrack) {
+            console.log(`AudioManager: Playing track: ${trackName}`);
+            
+            // Create a play promise to handle errors
+            const playPromise = this.currentTrack.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log(`AudioManager: ${trackName} track started playing`);
+                }).catch(e => {
+                    console.error(`AudioManager: Error playing ${trackName} track:`, e);
+                    
+                    // If autoplay was prevented, try clicking the corresponding button
+                    if (e.name === 'NotAllowedError') {
+                        console.log('AudioManager: Attempting to use the play button');
+                        const trackButtonMap = {
+                            'intro': document.querySelector('button[onclick="document.getElementById(\'debug-intro\').play()"]'),
+                            'select': document.querySelector('button[onclick="document.getElementById(\'debug-select\').play()"]'),
+                            'battle': document.querySelector('button[onclick="document.getElementById(\'debug-battle\').play()"]')
+                        };
+                        
+                        const button = trackButtonMap[trackName];
+                        if (button) {
+                            console.log('AudioManager: Clicking play button for', trackName);
+                            button.click();
+                        }
+                    }
+                });
+            }
+        } else {
+            console.error(`AudioManager: Track "${trackName}" not found`);
+        }
+    }
+};
+
+// Make AudioManager globally available
+window.AudioManager = AudioManager;
+
+// Create a global function to toggle audio state
+window.toggleAudio = function() {
+    console.log("Global toggleAudio function called");
+    
+    // Get audio icon element
+    const audioIcon = document.getElementById('audio-icon');
+    if (!audioIcon) {
+        console.error("Audio icon not found!");
+        return false;
+    }
+    
+    // Determine current state from icon
+    const currentIcon = audioIcon.textContent;
+    console.log("Current audio icon:", currentIcon);
+    
+    const currentlyEnabled = currentIcon === '🔊';
+    const newState = !currentlyEnabled;
+    
+    console.log("Audio state change:", currentlyEnabled ? "ON → OFF" : "OFF → ON");
+    
+    // Update icon with new state (force direct update)
+    if (newState) {
+        audioIcon.textContent = '🔊';
+    } else {
+        audioIcon.textContent = '🔇';
+    }
+    
+    console.log("New audio icon set to:", audioIcon.textContent);
+    
+    // Handle audio based on new state
+    if (newState) {
+        // Audio turning ON
+        if (window.AudioManager) {
+            // Determine current screen
+            let currentScreen = '';
+            document.querySelectorAll('.screen').forEach(screen => {
+                if (screen.classList.contains('active')) {
+                    currentScreen = screen.id;
+                }
+            });
+            
+            console.log("Current screen detected:", currentScreen);
+            
+            // Play appropriate track
+            if (currentScreen === 'title-screen') {
+                window.AudioManager.playTrack('intro');
+            } else if (currentScreen === 'character-select') {
+                window.AudioManager.playTrack('select');
+            } else if (currentScreen === 'battle-screen') {
+                window.AudioManager.playTrack('battle');
+            } else {
+                // Default to intro if screen can't be determined
+                console.log("No specific screen detected, defaulting to intro music");
+                window.AudioManager.playTrack('intro');
+            }
+            
+            console.log("Audio enabled for screen:", currentScreen);
+        } else {
+            console.error("AudioManager not available!");
+        }
+    } else {
+        // Audio turning OFF
+        if (window.AudioManager && window.AudioManager.currentTrack) {
+            window.AudioManager.currentTrack.pause();
+            window.AudioManager.currentTrack.currentTime = 0;
+            window.AudioManager.currentTrack = null;
+            console.log("Audio stopped");
+        } else {
+            console.log("No current track to stop");
+        }
+    }
+    
+    // Check the icon state after all operations
+    setTimeout(() => {
+        const finalIcon = document.getElementById('audio-icon').textContent;
+        console.log("Final audio icon state:", finalIcon);
+    }, 100);
+    
+    return newState;
+};
+
+// Add a simple button to explicitly play audio (avoiding autoplay restrictions)
+function createAudioPlayButton() {
+    try {
+        console.log('Creating audio play helper...');
+        // Create a small play button to help with audio autoplay restrictions
+        const existingBtn = document.getElementById('direct-audio-play');
+        if (existingBtn) return; // Don't create duplicate
+        
+        const audioPlayButton = document.createElement('button');
+        audioPlayButton.id = 'direct-audio-play';
+        audioPlayButton.textContent = 'Play Music';
+        audioPlayButton.style.position = 'fixed';
+        audioPlayButton.style.left = '10px';
+        audioPlayButton.style.bottom = '10px';
+        audioPlayButton.style.zIndex = '1000';
+        audioPlayButton.style.backgroundColor = 'blue';
+        audioPlayButton.style.color = 'white';
+        audioPlayButton.style.padding = '10px';
+        audioPlayButton.style.borderRadius = '5px';
+        audioPlayButton.style.border = 'none';
+        audioPlayButton.style.cursor = 'pointer';
+        
+        audioPlayButton.addEventListener('click', function() {
+            if (window.AudioManager) {
+                // Determine which track to play based on current screen
+                let currentScreen = '';
+                document.querySelectorAll('.screen').forEach(screen => {
+                    if (screen.classList.contains('active')) {
+                        currentScreen = screen.id;
+                    }
+                });
+                
+                // Force play appropriate track
+                if (currentScreen === 'title-screen') {
+                    window.AudioManager.playTrack('intro');
+                } else if (currentScreen === 'character-select') {
+                    window.AudioManager.playTrack('select');
+                } else if (currentScreen === 'battle-screen') {
+                    window.AudioManager.playTrack('battle');
+                } else {
+                    // Default to intro if screen can't be determined
+                    window.AudioManager.playTrack('intro');
+                }
+                
+                console.log('Direct audio play triggered for screen:', currentScreen);
+                this.textContent = 'Music Playing';
+                this.style.backgroundColor = 'green';
+                
+                // Hide after a few seconds
+                setTimeout(() => {
+                    this.style.opacity = '0.5';
+                }, 3000);
+            } else {
+                console.error('AudioManager not found');
+                this.textContent = 'Audio Error';
+                this.style.backgroundColor = 'red';
+            }
+        });
+        
+        document.body.appendChild(audioPlayButton);
+        console.log('Audio play helper created');
+    } catch (e) {
+        console.error('Error creating audio play helper:', e);
+    }
+}
+
 // Global Character class (emergency fallback if characters.js is missing)
 if (typeof Character === 'undefined') {
     console.error("🔴 CHARACTER CLASS NOT FOUND - CREATING EMERGENCY CHARACTER CLASS");
@@ -370,6 +619,31 @@ try {
         try {
             console.log('DOM loaded, initializing game...');
             
+            // Check if audio files exist
+            const audioFiles = ['intro.mp3', 'select.mp3', 'battle.mp3'];
+            console.log('Checking audio files...');
+            
+            for (const file of audioFiles) {
+                const audioPath = `assets/${file}`;
+                const audioElement = new Audio();
+                
+                audioElement.addEventListener('error', () => {
+                    console.error(`❌ Audio file not found or cannot be played: ${audioPath}`);
+                });
+                
+                audioElement.addEventListener('canplaythrough', () => {
+                    console.log(`✅ Audio file verified: ${audioPath}`);
+                });
+                
+                audioElement.src = audioPath;
+            }
+            
+            // Initialize audio manager
+            AudioManager.init();
+            
+            // Create audio play button
+            createAudioPlayButton();
+            
             // Check for Character class first
             const characterValid = validateCharacterClass();
             if (!characterValid) {
@@ -689,13 +963,62 @@ try {
                 }
             }
             
-            // Show a specific screen
+            // Function to show a specific screen
             function showScreen(screenId) {
                 console.log(`Showing screen: ${screenId}`);
+                
+                if (!screenId) {
+                    console.error('No screen ID provided to showScreen function');
+                    return;
+                }
+                
+                // Hide all screens
                 document.querySelectorAll('.screen').forEach(screen => {
+                    screen.style.display = 'none';
                     screen.classList.remove('active');
                 });
-                document.getElementById(screenId).classList.add('active');
+                
+                // Show the requested screen
+                const targetScreen = document.getElementById(screenId);
+                if (!targetScreen) {
+                    console.error(`Screen not found: ${screenId}`);
+                    return;
+                }
+                
+                targetScreen.style.display = 'flex';
+                targetScreen.classList.add('active');
+                
+                // Handle audio if AudioManager exists
+                if (window.AudioManager && window.AudioManager.initialized) {
+                    // Check if audio is enabled by looking directly at the icon
+                    const audioIcon = document.getElementById('audio-icon');
+                    const musicEnabled = audioIcon && audioIcon.textContent === '🔊';
+                    
+                    console.log(`Music state when changing to ${screenId}: ${musicEnabled ? 'Enabled' : 'Disabled'}`);
+                    
+                    // Only change music if enabled
+                    if (musicEnabled) {
+                        console.log(`Changing music for screen: ${screenId}`);
+                        
+                        // Choose appropriate music for the screen
+                        if (screenId === 'title-screen') {
+                            window.AudioManager.playTrack('intro');
+                        } else if (screenId === 'character-select') {
+                            window.AudioManager.playTrack('select');
+                        } else if (screenId === 'battle-screen') {
+                            window.AudioManager.playTrack('battle');
+                        } else {
+                            // Default to intro for other screens
+                            window.AudioManager.playTrack('intro');
+                        }
+                    } else {
+                        console.log(`Screen changed to ${screenId}, but music is disabled (icon shows: ${audioIcon ? audioIcon.textContent : 'missing'})`);
+                    }
+                } else {
+                    console.log(`Screen changed to ${screenId}, but AudioManager not ready`);
+                }
+                
+                return targetScreen;
             }
             
             // Update debug info
