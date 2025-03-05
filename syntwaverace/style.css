@@ -30,10 +30,16 @@ body {
     position: absolute;
     top: 20px;
     right: 20px;
-    font-size: 24px;
+    font-size: 36px;
+    font-weight: bold;
     color: #00fff9;
-    text-shadow: 0 0 10px #00fff9;
+    text-shadow: 0 0 10px #00fff9, 0 0 20px #00fff9, 0 0 30px #00fff9;
     z-index: 10;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #00fff9;
+    box-shadow: 0 0 15px #00fff9;
 }
 
 #title-screen {
