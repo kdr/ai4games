@@ -1,5 +1,7 @@
 # Synthwave Racer
 
+<img width="1368" alt="image" src="https://github.com/user-attachments/assets/5fb743a3-feb0-4b7a-b8e4-e5e3a257763f" />
+
 A simple 2D racing game with a retro 80s Miami/synthwave aesthetic. Drive your sports car silhouette through a neon-lit world with a beautiful sunset backdrop.
 
 ## Game Features
