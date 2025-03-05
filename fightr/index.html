@@ -274,6 +274,8 @@
                             isBlocking: false,
                             isAttacking: false,
                             attackType: null,
+                            hasHit: false,
+                            blockAnimation: false,
                             
                             update: function() {
                                 // Basic physics
@@ -308,8 +310,15 @@
                                 
                                 // Draw if blocking
                                 if (this.isBlocking) {
-                                    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+                                    const blockOpacity = this.blockAnimation ? 0.8 : 0.5;
+                                    ctx.fillStyle = `rgba(255, 255, 0, ${blockOpacity})`;
                                     ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
+                                    
+                                    if (this.blockAnimation) {
+                                        ctx.fillStyle = 'white';
+                                        ctx.font = '20px Arial';
+                                        ctx.fillText('BLOCK!', this.x, this.y - this.height/2);
+                                    }
                                 }
                                 
                                 // Draw if attacking
@@ -333,29 +342,51 @@
                             },
                             
                             punch: function() {
+                                if (this.isAttacking) return false; // Prevent attack spamming
                                 this.isAttacking = true;
                                 this.attackType = 'punch';
+                                console.log(`${this.name} punches!`);
                                 return true;
                             },
                             
                             kick: function() {
+                                if (this.isAttacking) return false; // Prevent attack spamming
                                 this.isAttacking = true;
                                 this.attackType = 'kick';
+                                console.log(`${this.name} kicks!`);
                                 return true;
                             },
                             
                             special: function() {
+                                if (this.isAttacking) return false; // Prevent attack spamming
                                 this.isAttacking = true;
                                 this.attackType = 'special';
+                                console.log(`${this.name} uses special attack!`);
                                 return true;
                             },
                             
                             takeDamage: function(amount) {
                                 if (this.isBlocking) {
-                                    amount = Math.floor(amount / 2);
+                                    amount = Math.floor(amount / 3);
+                                    console.log(`Blocked! Reduced damage to ${amount}`);
+                                    this.blockAnimation = true;
+                                    const self = this;
+                                    setTimeout(() => {
+                                        self.blockAnimation = false;
+                                    }, 300);
                                 }
+                                
+                                // Ensure amount is positive and health never increases
+                                amount = Math.abs(amount);
+                                
+                                // Store previous health for debugging
+                                const prevHealth = this.health;
                                 this.health -= amount;
-                                if (this.health < 0) this.health = 0;
+                                
+                                // Ensure health stays within bounds
+                                this.health = Math.max(0, Math.min(this.health, this.maxHealth));
+                                
+                                console.log(`${this.name} health: ${prevHealth} -> ${this.health}/${this.maxHealth}, damage: ${amount}`);
                                 return true;
                             },
                             
@@ -441,6 +472,19 @@
                     this.currentRound = 1;
                     this.p1Wins = 0;
                     this.p2Wins = 0;
+                    
+                    // Reset the announcement elements to make sure they're hidden
+                    if (this.announcementElement) {
+                        this.announcementElement.style.display = 'none';
+                    }
+                    
+                    if (this.roundTextElement) {
+                        this.roundTextElement.style.display = 'none';
+                    }
+                    
+                    if (this.fightTextElement) {
+                        this.fightTextElement.style.display = 'none';
+                    }
                     
                     // Update timer display
                     if (this.timerElement) {
@@ -574,9 +618,19 @@
                     if (this.gameState !== 'fighting' || !this.useAI || !this.player2) return;
                     
                     // Basic AI: move toward player1 and randomly attack
-                    if (Math.random() < 0.02) { // 2% chance to jump
+                    if (Math.random() < 0.01) { // Reduced from 0.02 to 0.01 (1% chance to jump)
                         this.player2.jump();
                     }
+                    
+                    // Don't attack if already attacking
+                    if (this.player2.isAttacking) {
+                        // Stop moving when attacking
+                        this.player2.stopMoving();
+                        return;
+                    }
+                    
+                    // If has hit, don't allow more attacks for a moment
+                    if (this.player2.hasHit) return;
                     
                     // Move toward player
                     if (this.player2.x > this.player1.x + 100) {
@@ -584,19 +638,20 @@
                     } else if (this.player2.x < this.player1.x - 100) {
                         this.player2.moveRight();
                     } else {
-                        // In attack range
+                        // In attack range - reduce attack frequency
                         const attackChance = Math.random();
                         
-                        if (attackChance < 0.01) { // 1% chance for special
+                        if (attackChance < 0.005) { // Reduced from 0.01 to 0.005 (0.5% chance for special)
                             this.player2.special();
-                        } else if (attackChance < 0.03) { // 2% chance for kick
+                        } else if (attackChance < 0.015) { // Reduced from 0.03 to 0.015 (1% chance for kick)
                             this.player2.kick();
-                        } else if (attackChance < 0.06) { // 3% chance for punch
+                        } else if (attackChance < 0.03) { // Reduced from 0.06 to 0.03 (1.5% chance for punch)
                             this.player2.punch();
-                        } else if (attackChance < 0.08) { // 2% chance to block
+                        } else if (attackChance < 0.05) { // Reduced from 0.08 to 0.05 (2% chance to block)
                             this.player2.startBlock();
                         } else {
                             this.player2.endBlock();
+                            this.player2.stopMoving();
                         }
                     }
                 },
@@ -644,17 +699,29 @@
                     };
                     
                     // Check if Player 1's attack hits Player 2
-                    if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds)) {
+                    if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds) && !this.player1.hasHit) {
                         console.log(`P1 ${this.player1.attackType} hit P2!`);
                         this.player2.takeDamage(p1Hitbox.damage);
                         this.updateHealthDisplay();
+                        this.player1.hasHit = true;
+                        
+                        // Adding a longer cooldown to prevent multiple hits
+                        setTimeout(() => {
+                            this.player1.hasHit = false;
+                        }, 800); // Increased from 500 to 800ms
                     }
                     
                     // Check if Player 2's attack hits Player 1
-                    if (p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds)) {
+                    if (p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds) && !this.player2.hasHit) {
                         console.log(`P2 ${this.player2.attackType} hit P1!`);
                         this.player1.takeDamage(p2Hitbox.damage);
                         this.updateHealthDisplay();
+                        this.player2.hasHit = true;
+                        
+                        // Adding a longer cooldown to prevent multiple hits
+                        setTimeout(() => {
+                            this.player2.hasHit = false;
+                        }, 800); // Increased from 500 to 800ms
                     }
                 },
                 
@@ -778,13 +845,74 @@
                     }
                     
                     const self = this;
-                    // Check if match is over
+                    // Check if match is over (2 wins)
                     if (this.p1Wins >= 2 || this.p2Wins >= 2) {
-                        // Match over
+                        // Match over - announce the final winner
+                        const finalWinner = this.p1Wins >= 2 ? 'PLAYER 1' : 'AI';
+                        console.log(`Match over! ${finalWinner} wins!`);
+                        
+                        if (this.roundTextElement) {
+                            this.roundTextElement.textContent = `${finalWinner} WINS THE MATCH!`;
+                        }
+                        
+                        // Return to character select after delay
                         setTimeout(function() {
-                            // Return to character select
-                            document.getElementById('battle-screen').classList.remove('active');
-                            document.getElementById('character-select').classList.add('active');
+                            // Stop the game
+                            self.stop();
+                            
+                            // Make sure to cancel all active timeouts
+                            const highestId = window.setTimeout(() => {}, 0);
+                            for (let i = highestId; i >= 0; i--) {
+                                window.clearTimeout(i); 
+                            }
+                            
+                            // Explicitly hide the announcement elements
+                            if (self.announcementElement) {
+                                self.announcementElement.style.display = 'none';
+                            }
+                            
+                            if (self.roundTextElement) {
+                                self.roundTextElement.style.display = 'none';
+                            }
+                            
+                            if (self.fightTextElement) {
+                                self.fightTextElement.style.display = 'none';
+                            }
+                            
+                            // Forcibly hide battle screen and show character select
+                            document.querySelectorAll('.screen').forEach(s => {
+                                s.classList.remove('active');
+                                s.style.display = 'none';
+                            });
+                            
+                            const charSelect = document.getElementById('character-select');
+                            if (charSelect) {
+                                charSelect.classList.add('active');
+                                charSelect.style.display = 'flex';
+                            }
+                            
+                            // Reset fight button
+                            const fightBtn = document.getElementById('fight-btn');
+                            if (fightBtn) {
+                                fightBtn.disabled = true;
+                            }
+                            
+                            // Clear character selections
+                            document.querySelectorAll('.character').forEach(el => {
+                                el.classList.remove('selected');
+                            });
+                            
+                            const p1Selection = document.getElementById('p1-selection');
+                            if (p1Selection) {
+                                p1Selection.innerHTML = '<span class="character-name">Select a character</span>';
+                            }
+                            
+                            const p2Selection = document.getElementById('p2-selection');
+                            if (p2Selection) {
+                                p2Selection.innerHTML = '<span class="character-name">AI will select...</span>';
+                            }
+                            
+                            console.log("Returned to character select screen");
                         }, 3000);
                     } else {
                         // Start next round after delay
@@ -1260,6 +1388,24 @@
             createPlaceholderIfMissing('ronin_portrait.png', 80, 80, getCharColor('ronin'));
             
             console.log("Emergency assets preloaded");
+            
+            // Setup controls button handler
+            const controlsBtn = document.getElementById('controls-btn');
+            const controlsOverlay = document.getElementById('controls-overlay');
+            const closeControlsBtn = document.getElementById('close-controls');
+            
+            if (controlsBtn && controlsOverlay) {
+                controlsBtn.addEventListener('click', function() {
+                    console.log("Controls button clicked");
+                    controlsOverlay.style.display = 'flex';
+                });
+                
+                if (closeControlsBtn) {
+                    closeControlsBtn.addEventListener('click', function() {
+                        controlsOverlay.style.display = 'none';
+                    });
+                }
+            }
         });
 
         // EMERGENCY DIRECT FIGHT BUTTON HANDLER
