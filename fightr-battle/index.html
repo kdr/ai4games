@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fight</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div id="player1-health" class="health-bar">
+                <div class="health-fill"></div>
+            </div>
+            <div id="round-info">
+                <span id="timer">60</span>
+                <div id="rounds">
+                    <div class="round-indicator player1"></div>
+                    <div class="round-indicator player1"></div>
+                    <div class="round-indicator player2"></div>
+                </div>
+            </div>
+            <div id="player2-health" class="health-bar">
+                <div class="health-fill"></div>
+            </div>
+        </div>
+        <div id="game-message">ROUND 1</div>
+        <div id="restart-button" style="display: none;">RESTART</div>
+        <div id="controls-info">
+            CONTROLS: A/D - Move, W - Jump, S - Block, F - Punch, G - Kick
+        </div>
+    </div>
+    <audio id="bgMusic" loop>
+        <source src="fight.mp3" type="audio/mp3">
+    </audio>
+
+    <script src="game.js"></script>
+</body>
+</html> 
