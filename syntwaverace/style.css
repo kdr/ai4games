@@ -62,6 +62,15 @@ body {
     opacity: 0.8;
 }
 
+#mobile-instructions {
+    display: none; /* Hidden by default on desktop */
+    font-size: 18px;
+    margin-top: 10px;
+    color: #ffffff;
+    text-shadow: 0 0 8px #ffffff, 0 0 12px #ffffff;
+    opacity: 0.9;
+}
+
 #title-screen {
     position: absolute;
     top: 0;
@@ -101,4 +110,75 @@ body {
     background-color: #00fff9;
     color: #120023;
     box-shadow: 0 0 30px #00fff9;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    #hud {
+        top: 10px;
+        right: 10px;
+        font-size: 24px;
+        padding: 8px 12px;
+    }
+    
+    #track-display {
+        font-size: 18px;
+        margin-top: 8px;
+    }
+    
+    #music-controls {
+        font-size: 14px;
+        margin-top: 8px;
+    }
+    
+    #mobile-instructions {
+        display: block; /* Show on mobile */
+        font-size: 16px;
+        margin-top: 8px;
+    }
+    
+    #title-screen h1 {
+        font-size: 48px;
+        margin-bottom: 30px;
+    }
+    
+    #start-button {
+        font-size: 24px;
+        padding: 12px 30px;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    #hud {
+        top: 5px;
+        right: 5px;
+        font-size: 20px;
+        padding: 5px 10px;
+    }
+    
+    #track-display {
+        font-size: 16px;
+        margin-top: 5px;
+    }
+    
+    #music-controls {
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
+    #mobile-instructions {
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    #title-screen h1 {
+        font-size: 36px;
+        margin-bottom: 20px;
+    }
+    
+    #start-button {
+        font-size: 20px;
+        padding: 10px 25px;
+    }
 } 
