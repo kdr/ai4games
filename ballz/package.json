@@ -1,0 +1,16 @@
+{
+  "name": "ballz",
+  "version": "1.0.0",
+  "description": "A 3D platformer game featuring a bouncing ball",
+  "main": "index.js",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "three": "^0.157.0"
+  },
+  "devDependencies": {
+    "vite": "^4.5.0"
+  }
+} 

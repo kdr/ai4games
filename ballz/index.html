@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ballz - 3D Platformer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #game-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      pointer-events: none;
+      z-index: 10;
+      text-shadow: 1px 1px 2px black;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="info">
+    <h1>Ballz</h1>
+    <p>Use WASD to move, SPACE to jump, SHIFT to double jump</p>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html> 
