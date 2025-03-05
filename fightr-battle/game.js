@@ -123,6 +123,7 @@ function createPlayer(x, y, color, isPlayer1) {
         attackType: null, // 'punch' or 'kick'
         attackCooldown: 0,
         isPlayer1: isPlayer1,
+        facingRight: isPlayer1, // Default facing direction
         keys: {
             left: false,
             right: false,
@@ -171,8 +172,10 @@ function updatePlayer(player) {
     // Move player
     if (player.keys.left && !player.isBlocking) {
         player.velocity.x = -5;
+        player.facingRight = false;
     } else if (player.keys.right && !player.isBlocking) {
         player.velocity.x = 5;
+        player.facingRight = true;
     } else {
         player.velocity.x = 0;
     }
@@ -225,12 +228,60 @@ function updatePlayer(player) {
 
 // Simple AI for player 2
 function updateAI(ai) {
-    // For now, AI is static and just stands in place
-    // We'll add more complex behavior later
+    // Apply gravity
     ai.velocity.y += GRAVITY;
     
-    // Occasional random attacks
-    if (Math.random() < 0.01 && ai.attackCooldown === 0) {
+    // AI movement logic - random movement with higher probability to move toward player
+    if (ai.attackCooldown <= 10 && !ai.isBlocking && !ai.attacking) {
+        // Random chance to change direction or stand still
+        if (Math.random() < 0.03) {
+            const moveChoice = Math.random();
+            
+            // 60% chance to move toward player, 20% to move away, 20% to stand still
+            if (moveChoice < 0.6) {
+                // Move toward player1
+                if (player1.x < ai.x) {
+                    ai.velocity.x = -3;
+                    ai.facingRight = false;
+                } else {
+                    ai.velocity.x = 3;
+                    ai.facingRight = true;
+                }
+            } else if (moveChoice < 0.8) {
+                // Move away from player1
+                if (player1.x < ai.x) {
+                    ai.velocity.x = 3;
+                    ai.facingRight = true;
+                } else {
+                    ai.velocity.x = -3;
+                    ai.facingRight = false;
+                }
+            } else {
+                // Stand still
+                ai.velocity.x = 0;
+            }
+        }
+        
+        // Random chance to jump
+        if (Math.random() < 0.005 && !ai.isJumping) {
+            ai.velocity.y = -12;
+            ai.isJumping = true;
+        }
+    } else {
+        // Slow down when attacking
+        ai.velocity.x *= 0.8;
+    }
+    
+    // Random blocking
+    if (Math.random() < 0.005) {
+        ai.isBlocking = !ai.isBlocking;
+    }
+    
+    // Random attacks when close to player1
+    const distanceToPlayer = Math.abs((ai.x + ai.width / 2) - (player1.x + player1.width / 2));
+    const attackProbability = distanceToPlayer < 150 ? 0.03 : 0.005;
+    
+    if (Math.random() < attackProbability && ai.attackCooldown === 0 && !ai.isBlocking) {
         ai.attacking = true;
         ai.attackType = Math.random() < 0.5 ? 'punch' : 'kick';
         ai.attackCooldown = 30;
@@ -239,14 +290,24 @@ function updateAI(ai) {
         }, 300);
     }
     
-    // Update position (just vertical for now)
+    // Update position
+    ai.x += ai.velocity.x;
     ai.y += ai.velocity.y;
+    
+    // Keep AI within boundaries
+    if (ai.x < 0) ai.x = 0;
+    if (ai.x + ai.width > CANVAS_WIDTH) ai.x = CANVAS_WIDTH - ai.width;
     
     // Handle floor collision
     if (ai.y + ai.height > CANVAS_HEIGHT - FLOOR_HEIGHT) {
         ai.y = CANVAS_HEIGHT - FLOOR_HEIGHT - ai.height;
         ai.velocity.y = 0;
         ai.isJumping = false;
+    }
+    
+    // Always decrease attack cooldown
+    if (ai.attackCooldown > 0) {
+        ai.attackCooldown--;
     }
 }
 
@@ -350,25 +411,36 @@ function drawPlayer(player) {
     // Draw head
     ctx.fillRect(player.x + player.width/4, player.y - 20, player.width/2, 20);
     
+    // Draw indicator for facing direction (like eyes)
+    const eyeSize = 8;
+    ctx.fillStyle = '#000';
+    if (player.facingRight) {
+        // Eyes on right side
+        ctx.fillRect(player.x + player.width - eyeSize - 5, player.y - 15, eyeSize, eyeSize);
+    } else {
+        // Eyes on left side
+        ctx.fillRect(player.x + 5, player.y - 15, eyeSize, eyeSize);
+    }
+    
     // Draw blocking stance
     if (player.isBlocking) {
         ctx.fillStyle = '#888';
-        const blockX = player.isPlayer1 ? player.x + player.width : player.x - 10;
+        const blockX = player.facingRight ? player.x + player.width : player.x - 10;
         ctx.fillRect(blockX, player.y + 20, 10, 60);
         return; // Don't draw limbs when blocking
     }
     
-    // Draw attacking limbs
+    // Draw attacking limbs, respecting player direction
     if (player.attacking) {
         ctx.fillStyle = '#FF0';
         
         if (player.attackType === 'punch') {
             // Punch (arm extension)
-            const punchX = player.isPlayer1 ? player.x + player.width : player.x - LIMB_WIDTH;
+            const punchX = player.facingRight ? player.x + player.width : player.x - LIMB_WIDTH;
             ctx.fillRect(punchX, player.y + 20, LIMB_WIDTH, LIMB_HEIGHT/2);
         } else if (player.attackType === 'kick') {
             // Kick (leg extension)
-            const kickX = player.isPlayer1 ? player.x + player.width : player.x - LIMB_WIDTH;
+            const kickX = player.facingRight ? player.x + player.width : player.x - LIMB_WIDTH;
             ctx.fillRect(kickX, player.y + 70, LIMB_WIDTH, LIMB_HEIGHT/2);
         }
     }
@@ -466,6 +538,17 @@ function updateRoundIndicators() {
     // Reset indicators
     roundIndicators.forEach(indicator => {
         indicator.classList.remove('won');
+    });
+    
+    // Reset player classes to ensure proper styling
+    document.querySelectorAll('.round-indicator').forEach((indicator, index) => {
+        indicator.classList.remove('player1', 'player2');
+        // First two indicators belong to player1, third belongs to player2
+        if (index < 2) {
+            indicator.classList.add('player1');
+        } else {
+            indicator.classList.add('player2');
+        }
     });
     
     // Update based on rounds won
