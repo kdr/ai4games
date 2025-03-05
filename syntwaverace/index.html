@@ -10,10 +10,16 @@
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="hud">
-            <div id="speed">0 mph</div>
-            <div id="track-display"><span id="current-track">--</span></div>
-            <div id="music-controls">[M] Toggle Music | [N] Next Track</div>
-            <div id="mobile-instructions">Tap to accelerate. Drag to steer.</div>
+            <div id="speed-container" class="hud-section">
+                <div id="speed">0 mph</div>
+            </div>
+            <div id="track-container" class="hud-section">
+                <div id="track-display"><span id="current-track">--</span></div>
+            </div>
+            <div id="controls-container" class="hud-section">
+                <div id="music-controls">[M]ute | [N]ext</div>
+                <div id="mobile-instructions">Tap to accelerate. Drag to steer.</div>
+            </div>
         </div>
         <div id="title-screen">
             <h1>VIBE RACER</h1>

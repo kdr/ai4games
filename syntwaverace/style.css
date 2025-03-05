@@ -30,11 +30,19 @@ body {
     position: absolute;
     top: 20px;
     right: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px; /* Space between sections */
+    z-index: 10;
+}
+
+.hud-section {
     font-size: 36px;
     font-weight: bold;
     color: #00fff9;
     text-shadow: 0 0 10px #00fff9, 0 0 20px #00fff9, 0 0 30px #00fff9;
-    z-index: 10;
     padding: 10px 20px;
     border-radius: 10px;
     background-color: rgba(0, 0, 0, 0.5);
@@ -42,9 +50,23 @@ body {
     box-shadow: 0 0 15px #00fff9;
 }
 
+#speed-container {
+    align-self: flex-end;
+}
+
+#track-container {
+    align-self: flex-end;
+}
+
+#controls-container {
+    align-self: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 #track-display {
     font-size: 24px;
-    margin-top: 10px;
     color: #ff41e9;
     text-shadow: 0 0 10px #ff41e9, 0 0 15px #ff41e9;
 }
@@ -56,7 +78,6 @@ body {
 
 #music-controls {
     font-size: 18px;
-    margin-top: 10px;
     color: #ffcc00;
     text-shadow: 0 0 8px #ffcc00, 0 0 12px #ffcc00;
     opacity: 0.8;
@@ -65,7 +86,6 @@ body {
 #mobile-instructions {
     display: none; /* Hidden by default on desktop */
     font-size: 18px;
-    margin-top: 10px;
     color: #ffffff;
     text-shadow: 0 0 8px #ffffff, 0 0 12px #ffffff;
     opacity: 0.9;
@@ -117,24 +137,26 @@ body {
     #hud {
         top: 10px;
         right: 10px;
+        left: 10px;
+        gap: 10px;
+    }
+    
+    .hud-section {
         font-size: 24px;
         padding: 8px 12px;
     }
     
     #track-display {
         font-size: 18px;
-        margin-top: 8px;
     }
     
     #music-controls {
         font-size: 14px;
-        margin-top: 8px;
     }
     
     #mobile-instructions {
         display: block; /* Show on mobile */
         font-size: 16px;
-        margin-top: 8px;
     }
     
     #title-screen h1 {
@@ -153,23 +175,25 @@ body {
     #hud {
         top: 5px;
         right: 5px;
+        left: 5px;
+        gap: 5px;
+    }
+    
+    .hud-section {
         font-size: 20px;
         padding: 5px 10px;
     }
     
     #track-display {
         font-size: 16px;
-        margin-top: 5px;
     }
     
     #music-controls {
         font-size: 12px;
-        margin-top: 5px;
     }
     
     #mobile-instructions {
         font-size: 14px;
-        margin-top: 5px;
     }
     
     #title-screen h1 {
