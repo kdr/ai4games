@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<!-- 
+    FightR - Street Fighter Style Game
+    
+    IMPORTANT: The initGame function is now defined globally in main.js to ensure
+    it's accessible from emergency handlers. This function properly initializes 
+    the FightGame class and connects all UI elements.
+    
+    If the error "initGame function not found" persists:
+    1. Make sure js/main.js is loaded properly
+    2. Try pressing F3 to test the canvas
+    3. Press F2 to force character creation
+    4. Press F1 for a complete game reset
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fightr - Street Fighter Style Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles for AI info display */
+        #ai-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 200px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .key-note {
+            color: #ff3019;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .victory-message {
+            color: #ff3019;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            animation: pulse-text 1.5s infinite;
+        }
+        
+        @keyframes pulse-text {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="title-screen" class="screen active">
+            <h1>FIGHTR</h1>
+            <button id="start-btn" onclick="showCharSelect()">START GAME</button>
+        </div>
+
+        <div id="character-select" class="screen">
+            <h2>SELECT YOUR FIGHTER</h2>
+            <div class="player-select">
+                <div class="player-info">
+                    <h3>PLAYER 1</h3>
+                    <div id="p1-selection" class="selected-character">
+                        <span class="character-name">Select a character</span>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <h3>AI OPPONENT</h3>
+                    <div id="p2-selection" class="selected-character">
+                        <span class="character-name">AI will select...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="character-grid">
+                <div class="character" data-character="ninja">
+                    <img src="assets/ninja_portrait.png" alt="Ninja">
+                    <span>NINJA</span>
+                </div>
+                <div class="character" data-character="samurai">
+                    <img src="assets/samurai_portrait.png" alt="Samurai">
+                    <span>SAMURAI</span>
+                </div>
+                <div class="character" data-character="monk">
+                    <img src="assets/monk_portrait.png" alt="Monk">
+                    <span>MONK</span>
+                </div>
+                <div class="character" data-character="ronin">
+                    <img src="assets/ronin_portrait.png" alt="Ronin">
+                    <span>RONIN</span>
+                </div>
+            </div>
+            <button id="fight-btn" disabled>FIGHT!</button>
+            <div class="key-note">Press G (punch), H (kick), or J (special) to attack!</div>
+        </div>
+
+        <div id="battle-screen" class="screen">
+            <div class="hud">
+                <div class="player-hud" id="p1-hud">
+                    <div class="player-name">PLAYER 1</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="p1-health"></div>
+                    </div>
+                </div>
+                <div class="timer">90</div>
+                <div class="player-hud" id="p2-hud">
+                    <div class="player-name">AI OPPONENT</div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="p2-health"></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="game-canvas" width="800" height="450"></canvas>
+            
+            <!-- AI Info Display -->
+            <div id="ai-info">
+                <div>AI STATUS</div>
+                <div id="ai-state">Thinking...</div>
+                <div id="ai-action">No action</div>
+                <div id="ai-target">Distance: --</div>
+            </div>
+        </div>
+
+        <div id="round-announcement" class="announcement">
+            <div id="round-text">GET READY</div>
+            <div id="fight-text">FIGHT!</div>
+        </div>
+
+        <div id="victory-screen" class="screen">
+            <h2 id="winner-text">PLAYER 1 WINS!</h2>
+            <div class="victory-message">Returning to character select...</div>
+            <button id="rematch-btn" style="display:none;">REMATCH</button>
+            <button id="character-select-btn">SELECT NEW FIGHTER</button>
+        </div>
+    </div>
+
+    <div id="controls-overlay" class="overlay">
+        <div class="overlay-content">
+            <h2>Controls</h2>
+            <div class="controls-section">
+                <h3>Player Controls</h3>
+                <ul>
+                    <li>W: Jump</li>
+                    <li>A: Move Left</li>
+                    <li>D: Move Right</li>
+                    <li>S: Block</li>
+                    <li>G: Punch</li>
+                    <li>H: Kick</li>
+                    <li>J: Special</li>
+                </ul>
+            </div>
+            <div class="controls-section">
+                <h3>AI Behavior</h3>
+                <p>The AI opponent will intelligently:</p>
+                <ul>
+                    <li>Maintain optimal distance</li>
+                    <li>Block incoming attacks</li>
+                    <li>Strike when in range</li>
+                    <li>Use special moves strategically</li>
+                </ul>
+            </div>
+            <button id="close-controls">Close</button>
+        </div>
+    </div>
+
+    <button id="controls-btn" class="controls-button">Controls</button>
+
+    <!-- Audio Controls Button -->
+    <button id="audio-btn" class="controls-button" style="right: 110px; background: #44f; color: white; font-weight: bold; padding: 10px 15px; border: 2px solid white;" onclick="window.toggleAudio()">
+        <span id="audio-icon">🔇</span> Music
+    </button>
+
+    <!-- Direct Audio Players (visible for debugging) -->
+    <div id="audio-debug" style="position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: white;">
+        <h3 style="margin: 0 0 5px 0; font-size: 14px;">DEBUG AUDIO <button id="hide-audio-debug" style="padding: 2px 5px; margin-left: 5px; font-size: 10px; background: #f33; border: none; color: white; border-radius: 3px; cursor: pointer;">Hide</button></h3>
+        <div>
+            <label>Intro: </label>
+            <audio id="debug-intro" controls src="assets/intro.mp3" style="height: 20px;"></audio>
+            <button onclick="document.getElementById('debug-intro').play()">Play</button>
+        </div>
+        <div style="margin-top: 5px;">
+            <label>Select: </label>
+            <audio id="debug-select" controls src="assets/select.mp3" style="height: 20px;"></audio>
+            <button onclick="document.getElementById('debug-select').play()">Play</button>
+        </div>
+        <div style="margin-top: 5px;">
+            <label>Battle: </label>
+            <audio id="debug-battle" controls src="assets/battle.mp3" style="height: 20px;"></audio>
+            <button onclick="document.getElementById('debug-battle').play()">Play</button>
+        </div>
+        
+        <!-- Force Audio State Buttons -->
+        <div style="margin-top: 10px; border-top: 1px solid #666; padding-top: 10px;">
+            <button onclick="document.getElementById('audio-icon').textContent='🔊'; console.log('Forced audio icon to ON');" 
+                    style="background: #4c4; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: black;">
+                Force Audio ON (🔊)
+            </button>
+            <button onclick="document.getElementById('audio-icon').textContent='🔇'; console.log('Forced audio icon to OFF');" 
+                    style="background: #f44; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: black; margin-left: 5px;">
+                Force Audio OFF (🔇)
+            </button>
+        </div>
+        
+        <!-- Direct Toggle Audio Button -->
+        <div style="margin-top: 10px;">
+            <button onclick="if(window.toggleAudio) { window.toggleAudio(); } else { console.error('toggleAudio function not found!'); }"
+                    style="background: #44f; padding: 8px 15px; border: none; border-radius: 3px; cursor: pointer; color: white; font-weight: bold; width: 100%;">
+                DIRECT TOGGLE AUDIO FUNCTION CALL
+            </button>
+        </div>
+        
+        <!-- Check Audio State Button -->
+        <div style="margin-top: 5px;">
+            <button onclick="const icon = document.getElementById('audio-icon'); console.log('Current audio icon:', icon ? icon.textContent : 'not found'); alert('Current audio state: ' + (icon && icon.textContent === '🔊' ? 'ON (🔊)' : 'OFF (🔇)'));"
+                    style="background: #f90; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: black; width: 100%;">
+                Check Audio State
+            </button>
+        </div>
+    </div>
+
+    <!-- Emergency Error Display Overlay -->
+    <div id="error-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; color: white; font-family: monospace; overflow: auto; padding: 20px; box-sizing: border-box;">
+        <div style="max-width: 800px; margin: 0 auto; background: #300; padding: 20px; border-radius: 5px;">
+            <h2 style="color: #f00; text-align: center;">GAME ERROR DETECTED</h2>
+            <div id="error-message" style="color: #f66; margin-bottom: 15px; font-size: 16px; font-weight: bold;"></div>
+            <div id="error-stack" style="color: #faa; margin-bottom: 20px; font-size: 14px; white-space: pre-wrap;"></div>
+            <div id="error-context" style="color: #fff; margin-bottom: 20px; font-size: 14px;"></div>
+            <div style="text-align: center;">
+                <button onclick="document.getElementById('error-overlay').style.display='none';" style="background: #f33; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">Dismiss</button>
+                <button onclick="window.location.reload();" style="background: #33f; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; margin-left: 10px;">Reload Page</button>
+                <button onclick="resetGameEmergency();" style="background: #3c3; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; margin-left: 10px;">Emergency Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Force retry loading game.js file if it failed initially -->
+    <script>
+        console.error("⚠️ Checking if game.js loaded properly...");
+        if (typeof FightGame !== 'function') {
+            console.error("🚨 game.js did not load properly! Attempting to load it again...");
+            const gameScript = document.createElement('script');
+            gameScript.src = 'js/game.js?' + new Date().getTime(); // Add cache buster
+            gameScript.onload = function() {
+                console.error("✅ game.js loaded successfully on second attempt!");
+                if (typeof FightGame === 'function') {
+                    console.error("FightGame class is now available");
+                } else {
+                    console.error("❌ Still cannot find FightGame class!");
+                }
+            };
+            gameScript.onerror = function() {
+                console.error("❌ Failed to load game.js on second attempt");
+                alert("Critical error: Could not load game.js file. The emergency implementation will be used instead.");
+            };
+            document.body.appendChild(gameScript);
+        } else {
+            console.error("✅ game.js loaded properly on first attempt");
+        }
+    </script>
+
+    <script src="js/sprites.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        // Global emergency initialization code
+        window.DEBUG = true;
+        
+        // Emergency factory function to create a game without relying on prototypes
+        window.createEmergencyGame = function(canvas, useAI) {
+            console.log("🚨 Creating direct emergency game instance");
+            
+            // Create game object directly
+            const game = {
+                canvas: canvas,
+                ctx: canvas.getContext('2d'),
+                width: canvas.width,
+                height: canvas.height,
+                useAI: useAI || false,
+                gameState: 'idle',
+                leftBoundary: 100,
+                rightBoundary: canvas.width - 100,
+                groundY: canvas.height - 100,
+                timeRemaining: 99,
+                p1Wins: 0,
+                p2Wins: 0,
+                currentRound: 1,
+                lastTime: 0,
+                fpsInterval: 1000 / 60,
+                keys: {
+                    w: false, a: false, s: false, d: false,
+                    g: false, h: false, j: false
+                },
+                player1: null,
+                player2: null,
+                
+                // Global damage tracking
+                lastAttackId: 0,
+                globalCombatLock: false,
+                lockEndTime: 0,
+                
+                // All methods defined directly on the object
+                setPlayers: function(char1, char2) {
+                    console.log("Setting players:", char1, char2);
+                    
+                    // Create a simple character constructor
+                    function createCharacter(options) {
+                        return {
+                            name: options.name || 'Unknown',
+                            x: options.x || 100,
+                            y: options.y || 350,
+                            width: options.width || 80,
+                            height: options.height || 150,
+                            health: options.health || 100,
+                            maxHealth: options.health || 100,
+                            isFacingRight: options.isFacingRight !== false,
+                            color: options.color || '#ff0000',
+                            vx: 0,
+                            vy: 0,
+                            speed: options.speed || 5,
+                            jumpPower: options.jumpPower || 15,
+                            gravity: 0.8,
+                            isGrounded: true,
+                            isJumping: false,
+                            isBlocking: false,
+                            isAttacking: false,
+                            attackType: null,
+                            blockAnimation: false,
+                            hurtTimeoutId: null,
+                            attackTimeoutId: null,
+                            
+                            // Add direct damage tracking
+                            lastDamageTime: 0,
+                            
+                            update: function() {
+                                // Basic physics
+                                if (!this.isGrounded) {
+                                    this.vy += this.gravity;
+                                }
+                                
+                                // Update position
+                                this.x += this.vx;
+                                this.y += this.vy;
+                                
+                                // Ground collision
+                                if (this.y > 350) {
+                                    this.y = 350;
+                                    this.vy = 0;
+                                    this.isGrounded = true;
+                                    this.isJumping = false;
+                                }
+                                
+                                return true;
+                            },
+                            
+                            draw: function(ctx) {
+                                ctx.fillStyle = this.color;
+                                ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
+                                
+                                // Draw name
+                                ctx.fillStyle = 'white';
+                                ctx.font = '16px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(this.name, this.x, this.y - this.height - 10);
+                                
+                                // Draw health directly on character
+                                ctx.fillStyle = 'white';
+                                ctx.font = '12px Arial';
+                                ctx.fillText(`HP: ${this.health}`, this.x, this.y - this.height - 30);
+                                
+                                // Draw if blocking
+                                if (this.isBlocking) {
+                                    const blockOpacity = this.blockAnimation ? 0.8 : 0.5;
+                                    ctx.fillStyle = `rgba(255, 255, 0, ${blockOpacity})`;
+                                    ctx.fillRect(this.x - this.width/2, this.y - this.height, this.width, this.height);
+                                    
+                                    if (this.blockAnimation) {
+                                        ctx.fillStyle = 'white';
+                                        ctx.font = '20px Arial';
+                                        ctx.fillText('BLOCK!', this.x, this.y - this.height/2);
+                                    }
+                                }
+                                
+                                // Draw if attacking
+                                if (this.isAttacking) {
+                                    const attackTexts = {
+                                        'punch': '👊',
+                                        'kick': '🦶',
+                                        'special': '⚡️'
+                                    };
+                                    
+                                    ctx.font = '24px Arial';
+                                    const attackX = this.isFacingRight ? this.x + this.width/2 + 20 : this.x - this.width/2 - 20;
+                                    ctx.fillText(attackTexts[this.attackType] || '!', attackX, this.y - this.height/2);
+                                }
+                            },
+                            
+                            punch: function() {
+                                if (this.isAttacking) return false; // Prevent attack spamming
+                                this.isAttacking = true;
+                                this.attackType = 'punch';
+                                console.log(`${this.name} punches!`);
+                                
+                                // Clear any existing attack timeout
+                                if (this.attackTimeoutId) clearTimeout(this.attackTimeoutId);
+                                
+                                // Reset attack state after drawing
+                                const self = this;
+                                this.attackTimeoutId = setTimeout(() => {
+                                    self.isAttacking = false;
+                                    self.attackType = null;
+                                    self.attackTimeoutId = null;
+                                }, 300);
+                                
+                                return true;
+                            },
+                            
+                            kick: function() {
+                                if (this.isAttacking) return false; // Prevent attack spamming
+                                this.isAttacking = true;
+                                this.attackType = 'kick';
+                                console.log(`${this.name} kicks!`);
+                                
+                                // Clear any existing attack timeout
+                                if (this.attackTimeoutId) clearTimeout(this.attackTimeoutId);
+                                
+                                // Reset attack state after drawing
+                                const self = this;
+                                this.attackTimeoutId = setTimeout(() => {
+                                    self.isAttacking = false;
+                                    self.attackType = null;
+                                    self.attackTimeoutId = null;
+                                }, 300);
+                                
+                                return true;
+                            },
+                            
+                            special: function() {
+                                if (this.isAttacking) return false; // Prevent attack spamming
+                                this.isAttacking = true;
+                                this.attackType = 'special';
+                                console.log(`${this.name} uses special attack!`);
+                                
+                                // Clear any existing attack timeout
+                                if (this.attackTimeoutId) clearTimeout(this.attackTimeoutId);
+                                
+                                // Reset attack state after drawing
+                                const self = this;
+                                this.attackTimeoutId = setTimeout(() => {
+                                    self.isAttacking = false;
+                                    self.attackType = null;
+                                    self.attackTimeoutId = null;
+                                }, 300);
+                                
+                                return true;
+                            },
+                            
+                            moveLeft: function() { this.vx = -this.speed; this.isFacingRight = false; },
+                            moveRight: function() { this.vx = this.speed; this.isFacingRight = true; },
+                            stopMoving: function() { this.vx = 0; },
+                            jump: function() {
+                                if (this.isGrounded) {
+                                    this.vy = -this.jumpPower;
+                                    this.isGrounded = false;
+                                    this.isJumping = true;
+                                }
+                            },
+                            
+                            startBlock: function() { this.isBlocking = true; },
+                            endBlock: function() { this.isBlocking = false; },
+                            
+                            getCurrentHitbox: function() {
+                                if (!this.isAttacking) return null;
+                                
+                                const hitboxWidth = this.attackType === 'punch' ? 60 :
+                                                   this.attackType === 'kick' ? 70 : 80;
+                                
+                                const hitboxX = this.isFacingRight ?
+                                    this.x + this.width/2 :
+                                    this.x - this.width/2 - hitboxWidth;
+                                    
+                                return {
+                                    x: hitboxX,
+                                    y: this.y - this.height/2,
+                                    width: hitboxWidth,
+                                    height: 40,
+                                    damage: this.attackType === 'punch' ? 5 :
+                                            this.attackType === 'kick' ? 8 : 15
+                                };
+                            }
+                        };
+                    }
+                    
+                    // Create player1
+                    this.player1 = createCharacter({
+                        name: char1,
+                        x: 200,
+                        y: this.groundY,
+                        isFacingRight: true,
+                        color: '#0066cc',
+                        speed: 5,
+                        jumpPower: 15,
+                        health: 100
+                    });
+                    
+                    // Create player2
+                    this.player2 = createCharacter({
+                        name: char2,
+                        x: 600,
+                        y: this.groundY,
+                        isFacingRight: false,
+                        color: '#cc3300',
+                        speed: 5,
+                        jumpPower: 15,
+                        health: 100
+                    });
+                    
+                    console.log("Emergency players created successfully");
+                    return true;
+                },
+                
+                // NEW DIRECT DAMAGE SYSTEM
+                applyDamage: function(attacker, target, damage, attackType) {
+                    // Skip if we're in combat lock
+                    if (this.globalCombatLock) {
+                        console.log("Combat locked, skipping hit");
+                        return false;
+                    }
+                    
+                    // Set the global combat lock
+                    this.globalCombatLock = true;
+                    this.lockEndTime = Date.now() + 500; // 500ms lock
+                    
+                    // Track this attack
+                    this.lastAttackId++;
+                    const attackId = this.lastAttackId;
+                    
+                    console.log(`[ATTACK #${attackId}] ${attacker.name} ${attackType} hits ${target.name}`);
+                    
+                    // Calculate damage with block
+                    let finalDamage = damage;
+                    if (target.isBlocking) {
+                        finalDamage = Math.floor(damage / 3);
+                        console.log(`[ATTACK #${attackId}] Blocked! Reduced damage from ${damage} to ${finalDamage}`);
+                        
+                        // Visual feedback for block
+                        target.blockAnimation = true;
+                        setTimeout(() => {
+                            target.blockAnimation = false;
+                        }, 300);
+                    }
+                    
+                    // Get current health and apply damage
+                    const oldHealth = target.health;
+                    target.health = Math.max(0, Math.min(oldHealth - finalDamage, target.maxHealth));
+                    
+                    // Log the health change with attack ID for tracking
+                    console.log(`[ATTACK #${attackId}] ${target.name} health: ${oldHealth} -> ${target.health}/${target.maxHealth} (damage: ${finalDamage})`);
+                    
+                    // Update the health display
+                    this.updateHealthDisplay();
+                    
+                    // Update last damage time on the target
+                    target.lastDamageTime = Date.now();
+                    
+                    // Release combat lock after delay
+                    setTimeout(() => {
+                        console.log(`[ATTACK #${attackId}] Combat unlocked`);
+                        this.globalCombatLock = false;
+                    }, 500);
+                    
+                    // Check for KO
+                    if (target.health <= 0) {
+                        const winner = (target === this.player1) ? 2 : 1;
+                        console.log(`[ATTACK #${attackId}] Player ${winner} wins by KO!`);
+                        this.endRound(winner);
+                    }
+                    
+                    return true;
+                },
+                
+                // Check if combat is locked
+                isCombatLocked: function() {
+                    if (!this.globalCombatLock) return false;
+                    
+                    // Check if lock has expired
+                    if (Date.now() >= this.lockEndTime) {
+                        this.globalCombatLock = false;
+                        return false;
+                    }
+                    
+                    return true;
+                },
+                
+                connect: function(elements) {
+                    console.log("Connecting UI elements:", elements);
+                    this.healthBarP1 = elements.healthP1;
+                    this.healthBarP2 = elements.healthP2;
+                    this.timerElement = elements.timer;
+                    this.announcementElement = elements.announcement;
+                    this.roundTextElement = elements.roundText;
+                    this.fightTextElement = elements.fightText;
+                    return true;
+                },
+                
+                start: function() {
+                    console.log("Starting emergency game");
+                    this.gameState = 'starting';
+                    
+                    // Reset game state
+                    this.timeRemaining = 99;
+                    this.currentRound = 1;
+                    this.p1Wins = 0;
+                    this.p2Wins = 0;
+                    this.lastAttackId = 0;
+                    this.globalCombatLock = false;
+                    
+                    // Reset the announcement elements to make sure they're hidden
+                    if (this.announcementElement) {
+                        this.announcementElement.style.display = 'none';
+                    }
+                    
+                    if (this.roundTextElement) {
+                        this.roundTextElement.style.display = 'none';
+                    }
+                    
+                    if (this.fightTextElement) {
+                        this.fightTextElement.style.display = 'none';
+                    }
+                    
+                    // Update timer display
+                    if (this.timerElement) {
+                        this.timerElement.textContent = this.timeRemaining;
+                    }
+                    
+                    // Setup keyboard input
+                    this.setupEventListeners();
+                    
+                    // Start round
+                    this.startRound();
+                    
+                    // Start game loop
+                    const self = this;
+                    this.animationFrameId = requestAnimationFrame(function(time) {
+                        self.gameLoop(time);
+                    });
+                    
+                    return true;
+                },
+                
+                startRound: function() {
+                    console.log("Starting round", this.currentRound);
+                    this.gameState = 'starting';
+                    
+                    // Reset combat system
+                    this.lastAttackId = 0;
+                    this.globalCombatLock = false;
+                    
+                    // Reset player positions
+                    if (this.player1) {
+                        this.player1.x = 200;
+                        this.player1.health = 100; // Always start with exact health value
+                        this.player1.maxHealth = 100;
+                        this.player1.lastDamageTime = 0;
+                        if (this.player1.attackTimeoutId) clearTimeout(this.player1.attackTimeoutId);
+                        if (this.player1.hurtTimeoutId) clearTimeout(this.player1.hurtTimeoutId);
+                    }
+                    
+                    if (this.player2) {
+                        this.player2.x = 600;
+                        this.player2.health = 100; // Always start with exact health value
+                        this.player2.maxHealth = 100;
+                        this.player2.lastDamageTime = 0;
+                        if (this.player2.attackTimeoutId) clearTimeout(this.player2.attackTimeoutId);
+                        if (this.player2.hurtTimeoutId) clearTimeout(this.player2.hurtTimeoutId);
+                    }
+                    
+                    // Update health display
+                    this.updateHealthDisplay();
+                    
+                    // Show round announcement
+                    this.showRoundAnnouncement();
+                    
+                    // Start timer
+                    this.startTimer();
+                },
+                
+                updateHealthDisplay: function() {
+                    if (!this.player1 || !this.player2) return false;
+                    
+                    // Calculate health percentages
+                    const p1HealthPercent = (this.player1.health / this.player1.maxHealth) * 100;
+                    const p2HealthPercent = (this.player2.health / this.player2.maxHealth) * 100;
+                    
+                    // Update health bar for player 1
+                    if (this.healthBarP1) {
+                        this.healthBarP1.style.width = `${p1HealthPercent}%`;
+                    }
+                    
+                    // Update health bar for player 2
+                    if (this.healthBarP2) {
+                        this.healthBarP2.style.width = `${p2HealthPercent}%`;
+                    }
+                    
+                    return true;
+                },
+                
+                setupEventListeners: function() {
+                    const self = this;
+                    
+                    // Add key handlers
+                    window.addEventListener('keydown', function(e) {
+                        // Update key state
+                        if (e.key.toLowerCase() in self.keys) {
+                            self.keys[e.key.toLowerCase()] = true;
+                        }
+                    });
+                    
+                    window.addEventListener('keyup', function(e) {
+                        // Update key state
+                        if (e.key.toLowerCase() in self.keys) {
+                            self.keys[e.key.toLowerCase()] = false;
+                        }
+                    });
+                },
+                
+                handleInput: function() {
+                    if (this.gameState !== 'fighting') return;
+                    
+                    // Skip input handling during combat lock
+                    if (this.isCombatLocked()) return;
+                    
+                    // Handle player 1 movement
+                    if (this.player1) {
+                        // Handle movement
+                        if (this.keys.a) {
+                            this.player1.moveLeft();
+                        } else if (this.keys.d) {
+                            this.player1.moveRight();
+                        } else {
+                            this.player1.stopMoving();
+                        }
+                        
+                        // Handle jumping
+                        if (this.keys.w && !this.player1.isJumping && this.player1.isGrounded) {
+                            this.player1.jump();
+                        }
+                        
+                        // Handle blocking
+                        if (this.keys.s) {
+                            this.player1.startBlock();
+                        } else {
+                            this.player1.endBlock();
+                        }
+                        
+                        // Handle attacks
+                        if (this.keys.g) {
+                            this.player1.punch();
+                            this.keys.g = false; // Prevent holding down
+                        }
+                        
+                        if (this.keys.h) {
+                            this.player1.kick();
+                            this.keys.h = false; // Prevent holding down
+                        }
+                        
+                        if (this.keys.j) {
+                            this.player1.special();
+                            this.keys.j = false; // Prevent holding down
+                        }
+                    }
+                },
+                
+                handleAI: function() {
+                    if (this.gameState !== 'fighting' || !this.useAI || !this.player2) return;
+                    
+                    // Never process AI during combat lock
+                    if (this.isCombatLocked()) return;
+                    
+                    // Basic AI: move toward player1 and randomly attack
+                    if (Math.random() < 0.0003) { // Extremely reduced (0.03% chance to jump)
+                        this.player2.jump();
+                    }
+                    
+                    // Don't attack if already attacking
+                    if (this.player2.isAttacking) {
+                        // Stop moving when attacking
+                        this.player2.stopMoving();
+                        return;
+                    }
+                    
+                    // Move toward player
+                    if (this.player2.x > this.player1.x + 100) {
+                        this.player2.moveLeft();
+                    } else if (this.player2.x < this.player1.x - 100) {
+                        this.player2.moveRight();
+                    } else {
+                        // In attack range - reduce attack frequency
+                        const attackChance = Math.random();
+                        
+                        // DRASTICALLY reduced AI attack rates
+                        if (attackChance < 0.0002) { // 0.02% chance for special
+                            this.player2.special();
+                        } else if (attackChance < 0.0005) { // 0.03% chance for kick
+                            this.player2.kick();
+                        } else if (attackChance < 0.001) { // 0.05% chance for punch
+                            this.player2.punch();
+                        } else if (attackChance < 0.005) { // 0.4% chance to block
+                            this.player2.startBlock();
+                        } else {
+                            this.player2.endBlock();
+                            this.player2.stopMoving();
+                        }
+                    }
+                },
+                
+                update: function() {
+                    if (this.gameState !== 'fighting') return;
+                    
+                    // Update players
+                    if (this.player1) this.player1.update();
+                    if (this.player2) this.player2.update();
+                    
+                    // Check if combat lock expired
+                    this.isCombatLocked();
+                    
+                    // Check collisions only if not in combat lock
+                    if (!this.globalCombatLock) {
+                        this.checkCollisions();
+                    }
+                },
+                
+                checkCollisions: function() {
+                    if (!this.player1 || !this.player2) return;
+                    
+                    // Skip collision detection during combat lock
+                    if (this.globalCombatLock) return;
+                    
+                    // Skip if we've recently checked (prevent double checks in same frame)
+                    const currentTime = Date.now();
+                    
+                    // Check for attack hitboxes
+                    const p1Hitbox = this.player1.getCurrentHitbox();
+                    const p2Hitbox = this.player2.getCurrentHitbox();
+                    
+                    // Player bounds
+                    const p1Bounds = {
+                        x: this.player1.x - this.player1.width/2,
+                        y: this.player1.y - this.player1.height,
+                        width: this.player1.width,
+                        height: this.player1.height
+                    };
+                    
+                    const p2Bounds = {
+                        x: this.player2.x - this.player2.width/2,
+                        y: this.player2.y - this.player2.height,
+                        width: this.player2.width,
+                        height: this.player2.height
+                    };
+                    
+                    // Check if Player 1's attack hits Player 2
+                    if (p1Hitbox && this.checkOverlap(p1Hitbox, p2Bounds)) {
+                        console.log(`P1 ${this.player1.attackType} hit P2!`);
+                        
+                        // Apply damage directly, no queue
+                        this.applyDamage(this.player1, this.player2, p1Hitbox.damage, this.player1.attackType);
+                    }
+                    
+                    // Check if Player 2's attack hits Player 1 - only check if no Player 1 hit in this frame
+                    if (!this.globalCombatLock && p2Hitbox && this.checkOverlap(p2Hitbox, p1Bounds)) {
+                        console.log(`P2 ${this.player2.attackType} hit P1!`);
+                        
+                        // Apply damage directly, no queue
+                        this.applyDamage(this.player2, this.player1, p2Hitbox.damage, this.player2.attackType);
+                    }
+                },
+                
+                checkOverlap: function(rect1, rect2) {
+                    return (
+                        rect1.x < rect2.x + rect2.width &&
+                        rect1.x + rect1.width > rect2.x &&
+                        rect1.y < rect2.y + rect2.height &&
+                        rect1.y + rect1.height > rect2.y
+                    );
+                },
+                
+                showRoundAnnouncement: function() {
+                    console.log(`Showing round ${this.currentRound} announcement`);
+                    
+                    if (this.announcementElement) {
+                        this.announcementElement.style.display = 'flex';
+                    }
+                    
+                    if (this.roundTextElement) {
+                        this.roundTextElement.textContent = `ROUND ${this.currentRound}`;
+                        this.roundTextElement.style.display = 'block';
+                    }
+                    
+                    const self = this;
+                    // Show fight text after delay
+                    setTimeout(function() {
+                        if (self.roundTextElement) {
+                            self.roundTextElement.style.display = 'none';
+                        }
+                        
+                        if (self.fightTextElement) {
+                            self.fightTextElement.style.display = 'block';
+                        }
+                        
+                        // Hide announcement after delay
+                        setTimeout(function() {
+                            if (self.announcementElement) {
+                                self.announcementElement.style.display = 'none';
+                            }
+                            
+                            if (self.fightTextElement) {
+                                self.fightTextElement.style.display = 'none';
+                            }
+                            
+                            // Change game state to fighting
+                            self.gameState = 'fighting';
+                        }, 1000);
+                    }, 2000);
+                },
+                
+                startTimer: function() {
+                    console.log("Starting timer");
+                    
+                    // Clear any existing timer
+                    if (this.timerInterval) {
+                        clearInterval(this.timerInterval);
+                    }
+                    
+                    // Set initial time and update display
+                    this.timeRemaining = 99;
+                    
+                    if (this.timerElement) {
+                        this.timerElement.textContent = this.timeRemaining;
+                    }
+                    
+                    const self = this;
+                    // Start timer countdown
+                    this.timerInterval = setInterval(function() {
+                        self.timeRemaining--;
+                        
+                        if (self.timerElement) {
+                            self.timerElement.textContent = self.timeRemaining;
+                        }
+                        
+                        if (self.timeRemaining <= 0) {
+                            clearInterval(self.timerInterval);
+                            self.endRound(0); // Time up
+                        }
+                    }, 1000);
+                },
+                
+                endRound: function(winner) {
+                    console.log("Ending round with winner:", winner);
+                    
+                    // Prevent multiple calls to endRound
+                    if (this.gameState === 'roundEnd') {
+                        return;
+                    }
+                    
+                    this.gameState = 'roundEnd';
+                    
+                    // Update win counters
+                    if (winner === 1) {
+                        this.p1Wins++;
+                    } else if (winner === 2) {
+                        this.p2Wins++;
+                    } else {
+                        // Time up - determine winner by health
+                        if (this.player1.health > this.player2.health) {
+                            this.p1Wins++;
+                            winner = 1;
+                        } else if (this.player2.health > this.player1.health) {
+                            this.p2Wins++;
+                            winner = 2;
+                        } else {
+                            // Draw - player 1 wins by default
+                            this.p1Wins++;
+                            winner = 1;
+                        }
+                    }
+                    
+                    // Display the round winner
+                    if (this.announcementElement) {
+                        this.announcementElement.style.display = 'flex';
+                    }
+                    
+                    if (this.roundTextElement) {
+                        this.roundTextElement.textContent = winner === 1 ? 'PLAYER 1 WINS!' : 'AI WINS!';
+                        this.roundTextElement.style.display = 'block';
+                    }
+                    
+                    const self = this;
+                    // Check if match is over (2 wins)
+                    if (this.p1Wins >= 2 || this.p2Wins >= 2) {
+                        // Match over - announce the final winner
+                        const finalWinner = this.p1Wins >= 2 ? 'PLAYER 1' : 'AI';
+                        console.log(`Match over! ${finalWinner} wins!`);
+                        
+                        if (this.roundTextElement) {
+                            this.roundTextElement.textContent = `${finalWinner} WINS THE MATCH!`;
+                        }
+                        
+                        // Return to character select after delay
+                        setTimeout(function() {
+                            // Stop the game
+                            self.stop();
+                            
+                            // Make sure to cancel all active timeouts
+                            const highestId = window.setTimeout(() => {}, 0);
+                            for (let i = highestId; i >= 0; i--) {
+                                window.clearTimeout(i); 
+                            }
+                            
+                            // Explicitly hide the announcement elements
+                            if (self.announcementElement) {
+                                self.announcementElement.style.display = 'none';
+                            }
+                            
+                            if (self.roundTextElement) {
+                                self.roundTextElement.style.display = 'none';
+                            }
+                            
+                            if (self.fightTextElement) {
+                                self.fightTextElement.style.display = 'none';
+                            }
+                            
+                            // Forcibly hide battle screen and show character select
+                            document.querySelectorAll('.screen').forEach(s => {
+                                s.classList.remove('active');
+                                s.style.display = 'none';
+                            });
+                            
+                            const charSelect = document.getElementById('character-select');
+                            if (charSelect) {
+                                charSelect.classList.add('active');
+                                charSelect.style.display = 'flex';
+                            }
+                            
+                            // Reset fight button
+                            const fightBtn = document.getElementById('fight-btn');
+                            if (fightBtn) {
+                                fightBtn.disabled = true;
+                            }
+                            
+                            // Clear character selections
+                            document.querySelectorAll('.character').forEach(el => {
+                                el.classList.remove('selected');
+                            });
+                            
+                            const p1Selection = document.getElementById('p1-selection');
+                            if (p1Selection) {
+                                p1Selection.innerHTML = '<span class="character-name">Select a character</span>';
+                            }
+                            
+                            const p2Selection = document.getElementById('p2-selection');
+                            if (p2Selection) {
+                                p2Selection.innerHTML = '<span class="character-name">AI will select...</span>';
+                            }
+                            
+                            console.log("Returned to character select screen");
+                        }, 3000);
+                    } else {
+                        // Start next round after delay
+                        setTimeout(function() {
+                            // Hide announcement
+                            if (self.announcementElement) {
+                                self.announcementElement.style.display = 'none';
+                            }
+                            
+                            if (self.roundTextElement) {
+                                self.roundTextElement.style.display = 'none';
+                            }
+                            
+                            // Start next round
+                            self.currentRound++;
+                            self.startRound();
+                        }, 3000);
+                    }
+                },
+                
+                draw: function() {
+                    // Clear the canvas
+                    this.ctx.clearRect(0, 0, this.width, this.height);
+                    
+                    // Try to use cached background if available
+                    if (window.emergencyAssets && window.emergencyAssets['dojo_bg.png']) {
+                        const bgImg = new Image();
+                        bgImg.src = window.emergencyAssets['dojo_bg.png'];
+                        
+                        if (bgImg.complete) {
+                            this.ctx.drawImage(bgImg, 0, 0, this.width, this.height);
+                        } else {
+                            // Fallback to gradient
+                            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                            gradient.addColorStop(0, '#331800');
+                            gradient.addColorStop(0.7, '#663300');
+                            gradient.addColorStop(1, '#331800');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fillRect(0, 0, this.width, this.height);
+                        }
+                    } else {
+                        // Draw background from asset or use gradient if not available
+                        const bgImage = new Image();
+                        bgImage.src = 'assets/dojo_bg.png';
+                        
+                        if (bgImage.complete) {
+                            this.ctx.drawImage(bgImage, 0, 0, this.width, this.height);
+                        } else {
+                            // Use gradient background
+                            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                            gradient.addColorStop(0, '#331800');
+                            gradient.addColorStop(0.7, '#663300');
+                            gradient.addColorStop(1, '#331800');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fillRect(0, 0, this.width, this.height);
+                            
+                            // Try to create placeholder for next time
+                            if (typeof createPlaceholder === 'function') {
+                                createPlaceholder('dojo_bg.png', 800, 450, '#331800');
+                            }
+                        }
+                    }
+                    
+                    // Draw ground
+                    this.ctx.fillStyle = '#221100';
+                    this.ctx.fillRect(0, this.groundY, this.width, this.height - this.groundY);
+                    
+                    // Draw players
+                    if (this.player1) this.player1.draw(this.ctx);
+                    if (this.player2) this.player2.draw(this.ctx);
+                    
+                    // Draw hitboxes for debugging if in debug mode
+                    if (window.DEBUG) {
+                        // Draw player 1 hitbox
+                        const p1Hitbox = this.player1?.getCurrentHitbox();
+                        if (p1Hitbox) {
+                            this.ctx.strokeStyle = 'yellow';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.strokeRect(p1Hitbox.x, p1Hitbox.y, p1Hitbox.width, p1Hitbox.height);
+                        }
+                        
+                        // Draw player 2 hitbox
+                        const p2Hitbox = this.player2?.getCurrentHitbox();
+                        if (p2Hitbox) {
+                            this.ctx.strokeStyle = 'cyan';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.strokeRect(p2Hitbox.x, p2Hitbox.y, p2Hitbox.width, p2Hitbox.height);
+                        }
+                        
+                        // Draw player bounds
+                        this.ctx.strokeStyle = 'white';
+                        this.ctx.lineWidth = 1;
+                        if (this.player1) {
+                            this.ctx.strokeRect(
+                                this.player1.x - this.player1.width/2,
+                                this.player1.y - this.player1.height,
+                                this.player1.width,
+                                this.player1.height
+                            );
+                        }
+                        
+                        if (this.player2) {
+                            this.ctx.strokeRect(
+                                this.player2.x - this.player2.width/2,
+                                this.player2.y - this.player2.height,
+                                this.player2.width,
+                                this.player2.height
+                            );
+                        }
+                    }
+                },
+                
+                gameLoop: function(currentTime) {
+                    const self = this;
+                    // Request the next frame
+                    this.animationFrameId = requestAnimationFrame(function(time) {
+                        self.gameLoop(time);
+                    });
+                    
+                    // Calculate elapsed time
+                    const elapsed = currentTime - this.lastTime;
+                    
+                    // Only update if enough time has passed
+                    if (elapsed > this.fpsInterval) {
+                        // Update last time
+                        this.lastTime = currentTime - (elapsed % this.fpsInterval);
+                        
+                        // Handle input
+                        this.handleInput();
+                        
+                        // Handle AI
+                        if (this.useAI) {
+                            this.handleAI();
+                        }
+                        
+                        // Update game state
+                        this.update();
+                        
+                        // Draw the current frame
+                        this.draw();
+                    }
+                },
+                
+                stop: function() {
+                    console.log("Stopping game");
+                    
+                    if (this.animationFrameId) {
+                        cancelAnimationFrame(this.animationFrameId);
+                        this.animationFrameId = null;
+                    }
+                    
+                    if (this.timerInterval) {
+                        clearInterval(this.timerInterval);
+                        this.timerInterval = null;
+                    }
+                    
+                    // Clear all pending attacks
+                    this.attackQueue = [];
+                    this.processingAttack = false;
+                    
+                    // Clear any character timeouts
+                    if (this.player1) {
+                        if (this.player1.attackTimeoutId) clearTimeout(this.player1.attackTimeoutId);
+                        if (this.player1.hurtTimeoutId) clearTimeout(this.player1.hurtTimeoutId);
+                    }
+                    
+                    if (this.player2) {
+                        if (this.player2.attackTimeoutId) clearTimeout(this.player2.attackTimeoutId);
+                        if (this.player2.hurtTimeoutId) clearTimeout(this.player2.hurtTimeoutId);
+                    }
+                    
+                    this.gameState = 'idle';
+                }
+            };
+            
+            console.log("Emergency game instance created successfully");
+            return game;
+        };
+        
+        // Ensure FightGame exists - use our emergency implementation if needed
+        if (typeof FightGame !== 'function') {
+            console.error("🚨 FightGame class not found - Using emergency factory function");
+            window.FightGame = function(canvas, useAI) {
+                return window.createEmergencyGame(canvas, useAI);
+            };
+        }
+        
+        // Ensure window.initGame exists and works with our emergency implementation
+        if (typeof window.initGame !== 'function') {
+            console.error("🚨 initGame function not found - Creating direct emergency implementation");
+            
+            window.initGame = function() {
+                console.log("Direct emergency initGame function called");
+                
+                try {
+                    // Get the canvas element
+                    const canvas = document.getElementById('game-canvas');
+                    if (!canvas) {
+                        console.error("❌ Game canvas not found");
+                        return null;
+                    }
+                    
+                    // Create fight game instance - use emergency implementation
+                    const game = window.createEmergencyGame(canvas, true);
+                    
+                    // Connect UI elements
+                    game.connect({
+                        healthP1: document.getElementById('p1-health'),
+                        healthP2: document.getElementById('p2-health'),
+                        timer: document.querySelector('.timer'),
+                        announcement: document.getElementById('round-announcement'),
+                        roundText: document.getElementById('round-text'),
+                        fightText: document.getElementById('fight-text')
+                    });
+                    
+                    console.log("✅ Emergency game initialization successful");
+                    
+                    // Save as global reference
+                    window.game = game;
+                    
+                    return game;
+                } catch (e) {
+                    console.error("❌ Error in emergency initGame:", e);
+                    
+                    // Show error message
+                    const canvas = document.getElementById('game-canvas');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = 'red';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '24px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('ERROR: Game init failed', canvas.width/2, canvas.height/2 - 50);
+                        ctx.fillText(e.message, canvas.width/2, canvas.height/2);
+                        ctx.fillText('Press F2 to try character creation', canvas.width/2, canvas.height/2 + 50);
+                        ctx.fillText('Press F3 to test canvas', canvas.width/2, canvas.height/2 + 100);
+                    }
+                    
+                    return null;
+                }
+            };
+            
+            console.log("Emergency initGame function created successfully");
+        }
+        
+        // Function to show character selection
+        function showCharSelect() {
+            document.getElementById('title-screen').classList.remove('active');
+            document.getElementById('character-select').classList.add('active');
+            
+            // Play character select music
+            if (window.AudioManager) {
+                window.AudioManager.playTrack('select');
+            }
+            
+            // Pre-generate background immediately on character select
+            createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#331800');
+        }
+        
+        // Expose showCharSelect globally
+        window.showCharSelect = showCharSelect;
+        
+        // Load handlers for character selection
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create dojo background if missing
+            createPlaceholderIfMissing('dojo_bg.png', 800, 450, '#003366');
+            
+            // Add direct character selection
+            document.querySelectorAll('.character').forEach(characterElement => {
+                characterElement.onclick = function() {
+                    console.log("Direct character click detected:", this.getAttribute('data-character'));
+                    
+                    // Clear previous selections
+                    document.querySelectorAll('.character').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Mark this character as selected
+                    this.classList.add('selected');
+                    
+                    // Get character data
+                    const character = this.getAttribute('data-character');
+                    
+                    // Create a global reference to access from other scripts
+                    window.p1Character = character;
+                    
+                    // Update player 1 selection display
+                    const p1Selection = document.getElementById('p1-selection');
+                    if (p1Selection) {
+                        // Create a portrait if missing
+                        createPlaceholderIfMissing(`${character}_portrait.png`, 80, 80, getCharColor(character));
+                        
+                        p1Selection.innerHTML = `
+                            <img src="assets/${character}_portrait.png" alt="${character}">
+                            <span class="character-name">${getCharName(character)}</span>
+                        `;
+                    }
+                    
+                    // Randomly select AI character
+                    const availableChars = ['ninja', 'samurai', 'monk', 'ronin'].filter(c => c !== character);
+                    const p2Character = availableChars[Math.floor(Math.random() * availableChars.length)];
+                    
+                    // Store for global access
+                    window.p2Character = p2Character;
+                    
+                    // Update AI selection display
+                    const p2Selection = document.getElementById('p2-selection');
+                    if (p2Selection) {
+                        // Create a portrait if missing
+                        createPlaceholderIfMissing(`${p2Character}_portrait.png`, 80, 80, getCharColor(p2Character));
+                        
+                        p2Selection.innerHTML = `
+                            <img src="assets/${p2Character}_portrait.png" alt="${p2Character}">
+                            <span class="character-name">${getCharName(p2Character)}</span>
+                        `;
+                    }
+                    
+                    // Highlight AI selection after delay
+                    setTimeout(() => {
+                        const aiChar = document.querySelector(`.character[data-character="${p2Character}"]`);
+                        if (aiChar) aiChar.classList.add('selected');
+                        
+                        // Enable fight button
+                        const fightBtn = document.getElementById('fight-btn');
+                        if (fightBtn) fightBtn.disabled = false;
+                    }, 1000);
+                };
+            });
+            
+            // Add direct fight button handler
+            document.getElementById('fight-btn')?.addEventListener('click', function() {
+                console.error("🔴 EMERGENCY DIRECT FIGHT BUTTON HANDLER");
+                
+                // Force character selection if none
+                if (!window.p1Character) window.p1Character = 'ninja';
+                if (!window.p2Character) window.p2Character = 'samurai';
+                
+                // Hide all screens
+                document.querySelectorAll('.screen').forEach(s => {
+                    s.style.display = 'none';
+                    s.classList.remove('active');
+                });
+                
+                // Show battle screen
+                const battleScreen = document.getElementById('battle-screen');
+                battleScreen.style.display = 'flex';
+                battleScreen.classList.add('active');
+                console.error("Battle screen forcibly displayed");
+                
+                // Play battle music - check audio icon directly
+                const audioIcon = document.getElementById('audio-icon');
+                const audioEnabled = audioIcon && audioIcon.textContent === '🔊';
+                
+                console.log("Audio state when fight button clicked:", audioEnabled ? "ON" : "OFF", 
+                            "Icon:", audioIcon ? audioIcon.textContent : "not found");
+                
+                if (audioEnabled && window.AudioManager) {
+                    console.log("Playing battle music (audio enabled)");
+                    window.AudioManager.playTrack('battle');
+                } else {
+                    console.log("Audio is disabled or AudioManager not available, not playing battle music");
+                }
+            });
+        });
+    </script>
+    
+    <!-- Direct FIGHT button handler -->
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Setting up direct FIGHT button handler");
+            
+            const fightBtn = document.getElementById('fight-btn');
+            if (fightBtn) {
+                // Remove any existing onclick handlers
+                fightBtn.removeAttribute('onclick');
+                
+                // Add new event listener
+                fightBtn.addEventListener('click', function() {
+                    console.error("🔴 EMERGENCY DIRECT FIGHT BUTTON HANDLER");
+                    
+                    // Force character selection if none
+                    if (!window.p1Character) window.p1Character = 'ninja';
+                    if (!window.p2Character) window.p2Character = 'samurai';
+                    
+                    // Hide all screens
+                    document.querySelectorAll('.screen').forEach(s => {
+                        s.style.display = 'none';
+                        s.classList.remove('active');
+                    });
+                    
+                    // Show battle screen
+                    const battleScreen = document.getElementById('battle-screen');
+                    battleScreen.style.display = 'flex';
+                    battleScreen.classList.add('active');
+                    console.error("Battle screen forcibly displayed");
+                    
+                    // Play battle music - check audio icon directly
+                    const audioIcon = document.getElementById('audio-icon');
+                    const audioEnabled = audioIcon && audioIcon.textContent === '🔊';
+                    
+                    console.log("Audio state when fight button clicked:", audioEnabled ? "ON" : "OFF", 
+                                "Icon:", audioIcon ? audioIcon.textContent : "not found");
+                    
+                    if (audioEnabled && window.AudioManager) {
+                        console.log("Playing battle music (audio enabled)");
+                        window.AudioManager.playTrack('battle');
+                    } else {
+                        console.log("Audio is disabled or AudioManager not available, not playing battle music");
+                    }
+                    
+                    return false; // Prevent default action
+                });
+                
+                console.log("FIGHT button handler setup complete");
+            } else {
+                console.error("FIGHT button not found in DOM");
+            }
+        });
+    </script>
+</body>
+</html> 

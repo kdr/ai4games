@@ -1,0 +1,367 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    background: #000;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+    color: #fff;
+}
+
+.screen.active {
+    display: flex;
+}
+
+#title-screen {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                url('assets/dojo_bg.png') center/cover;
+    animation: pulse 4s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset; }
+    50% { box-shadow: 0 0 50px rgba(255, 0, 0, 0.8) inset; }
+    100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset; }
+}
+
+h1 {
+    font-size: 72px;
+    text-shadow: 0 0 20px #f00, 0 0 30px #f00;
+    margin-bottom: 40px;
+    color: #fff;
+    letter-spacing: 10px;
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 36px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+button {
+    background: linear-gradient(to bottom, #ff3019 0%, #cf0404 100%);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 25px rgba(255, 0, 0, 0.8);
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+button:disabled {
+    background: #555;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Character Selection Screen */
+#character-select {
+    background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), 
+                url('assets/dojo_bg.png') center/cover;
+}
+
+.player-select {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin-bottom: 20px;
+}
+
+.player-info {
+    text-align: center;
+    width: 45%;
+}
+
+.player-info h3 {
+    margin-bottom: 10px;
+    color: #ff3019;
+}
+
+.selected-character {
+    height: 100px;
+    background: rgba(50, 50, 50, 0.5);
+    border: 2px solid #333;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.character {
+    width: 150px;
+    height: 200px;
+    background: rgba(20, 20, 20, 0.8);
+    border: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    padding: 10px;
+}
+
+.character:hover {
+    transform: scale(1.05);
+    border-color: #ff3019;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.character.selected {
+    border-color: #ff3019;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+}
+
+.character img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* Battle Screen */
+#battle-screen {
+    background: url('assets/dojo_bg.png') center/cover;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.hud {
+    width: 100%;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 10;
+}
+
+.player-hud {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.health-bar {
+    width: 100%;
+    height: 20px;
+    background: #333;
+    border: 2px solid #555;
+    position: relative;
+    margin: 5px 0;
+}
+
+.health-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #ff3019, #cf0404);
+    transition: width 0.3s;
+}
+
+#p2-hud .health-fill {
+    background: linear-gradient(to left, #ff3019, #cf0404);
+}
+
+.timer {
+    font-size: 36px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.rounds {
+    display: flex;
+    gap: 5px;
+}
+
+.round-indicator {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #333;
+    border: 1px solid #555;
+}
+
+.round-indicator.won {
+    background: #ff3019;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+}
+
+#game-canvas {
+    margin-top: 20px;
+}
+
+/* Announcements */
+.announcement {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: none;
+    z-index: 20;
+}
+
+#round-text, #fight-text {
+    font-size: 72px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 20px #f00, 0 0 30px #f00;
+    animation: announcement 1s ease-in-out;
+}
+
+@keyframes announcement {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Victory Screen */
+#victory-screen {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+                url('assets/dojo_bg.png') center/cover;
+}
+
+#winner-text {
+    font-size: 48px;
+    margin-bottom: 40px;
+    animation: winner 1s ease-in-out infinite alternate;
+    text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+@keyframes winner {
+    from { transform: scale(1); text-shadow: 0 0 20px rgba(255, 0, 0, 0.5); }
+    to { transform: scale(1.05); text-shadow: 0 0 30px rgba(255, 0, 0, 0.8); }
+}
+
+#rematch-btn, #character-select-btn {
+    margin: 10px;
+}
+
+/* Controls Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.overlay-content {
+    background: #222;
+    border: 2px solid #ff3019;
+    padding: 30px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 600px;
+    color: #fff;
+}
+
+.controls-section {
+    margin: 20px 0;
+}
+
+.controls-section h3 {
+    color: #ff3019;
+    margin-bottom: 10px;
+}
+
+.controls-section ul {
+    list-style-type: none;
+}
+
+.controls-section li {
+    margin: 8px 0;
+}
+
+/* Controls button */
+.controls-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #ff3019;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.2s;
+}
+
+.controls-button:hover {
+    background-color: #c72100;
+}
+
+/* Audio button specific styles */
+#audio-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+#audio-icon {
+    font-size: 16px;
+} 
