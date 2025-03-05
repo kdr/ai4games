@@ -1,6 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+// Audio setup
+const audioListener = new THREE.AudioListener();
+const backgroundMusic = new THREE.Audio(audioListener);
+const audioLoader = new THREE.AudioLoader();
+
+// Load background music
+audioLoader.load('../bounce.mp3', function(buffer) {
+    backgroundMusic.setBuffer(buffer);
+    backgroundMusic.setLoop(true);
+    backgroundMusic.setVolume(0.5);
+});
+
 // Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB); // Sky blue background
@@ -8,6 +20,7 @@ scene.background = new THREE.Color(0x87CEEB); // Sky blue background
 // Camera setup
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 5, 10);
+camera.add(audioListener); // Add audio listener to the camera
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -101,9 +114,21 @@ const platforms = [
 
 // Input handling
 const keyStates = {};
+let musicStarted = false; // Flag to track if music has started
+
+// Function to start background music
+function startBackgroundMusic() {
+    if (!musicStarted && backgroundMusic.buffer) {
+        backgroundMusic.play();
+        musicStarted = true;
+    }
+}
 
 window.addEventListener('keydown', (event) => {
     keyStates[event.code] = true;
+    
+    // Start background music on first interaction
+    startBackgroundMusic();
     
     // Jump handling
     if (event.code === 'Space') {
@@ -234,6 +259,23 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Music toggle functionality
+const musicToggleBtn = document.getElementById('music-toggle');
+musicToggleBtn.addEventListener('click', () => {
+    if (musicStarted) {
+        if (backgroundMusic.isPlaying) {
+            backgroundMusic.pause();
+            musicToggleBtn.innerHTML = '🔇 Music Off';
+        } else {
+            backgroundMusic.play();
+            musicToggleBtn.innerHTML = '🔊 Music On';
+        }
+    } else {
+        startBackgroundMusic();
+        musicToggleBtn.innerHTML = '🔊 Music On';
+    }
 });
 
 // Start the game

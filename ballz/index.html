@@ -25,6 +25,21 @@
       z-index: 10;
       text-shadow: 1px 1px 2px black;
     }
+    #music-toggle {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 20;
+    }
+    #music-toggle:hover {
+      background: rgba(0, 0, 0, 0.7);
+    }
   </style>
 </head>
 <body>
@@ -33,6 +48,7 @@
     <h1>Ballz</h1>
     <p>Use WASD to move, SPACE to jump, SHIFT to double jump</p>
   </div>
+  <button id="music-toggle">🔇 Music Off</button>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html> 
