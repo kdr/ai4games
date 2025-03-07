@@ -19,7 +19,7 @@ scene.background = new THREE.Color(0x87CEEB); // Sky blue background
 
 // Camera setup
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 5, 10);
+camera.position.set(0, 3, 6);
 camera.add(audioListener); // Add audio listener to the camera
 
 // Renderer setup
@@ -43,10 +43,14 @@ orbitControls.rotateSpeed = 0.7; // Adjust rotate speed for better mouse control
 orbitControls.enableKeys = false;
 
 // Lights setup
-const ambientLight = new THREE.AmbientLight(0x404040, 1);
+const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+// Add a hemisphere light for more natural environmental lighting
+const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5);
+scene.add(hemisphereLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
 directionalLight.position.set(5, 10, 7.5);
 directionalLight.castShadow = true;
 directionalLight.shadow.camera.near = 0.5;
@@ -58,6 +62,16 @@ directionalLight.shadow.camera.bottom = -20;
 directionalLight.shadow.mapSize.width = 2048;
 directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
+
+// Add a subtle fill light from the opposite direction
+const fillLight = new THREE.DirectionalLight(0xffddcc, 0.3);
+fillLight.position.set(-5, 8, -7);
+scene.add(fillLight);
+
+// Optional: Add a point light for more dynamic lighting
+const pointLight = new THREE.PointLight(0xffffee, 0.5, 20);
+pointLight.position.set(0, 8, 0);
+scene.add(pointLight);
 
 // Ground setup
 const groundGeometry = new THREE.PlaneGeometry(50, 50);
@@ -76,7 +90,7 @@ scene.add(ground);
 const ballRadius = 0.5;
 const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
 const ballMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x8B0000,
+    color: 0xFF0000,
     roughness: 0.5,
     metalness: 0.7
 });
@@ -120,12 +134,45 @@ const platforms = [
 // Input handling
 const keyStates = {};
 let musicStarted = false; // Flag to track if music has started
+let userHasMoved = false;
+let controlsHideTimeout = null;
 
 // Function to start background music
 function startBackgroundMusic() {
     if (!musicStarted && backgroundMusic.buffer) {
         backgroundMusic.play();
         musicStarted = true;
+        
+        // Update music toggle button to show the correct state
+        const musicToggleBtn = document.getElementById('music-toggle');
+        musicToggleBtn.innerHTML = '🔊 Music On';
+    }
+}
+
+// Controls visibility functions
+function showControls() {
+    const infoElement = document.getElementById('info');
+    infoElement.style.opacity = '1';
+    
+    const controlsToggleBtn = document.getElementById('controls-toggle');
+    controlsToggleBtn.innerHTML = '📋 Hide Controls';
+}
+
+function hideControls() {
+    const infoElement = document.getElementById('info');
+    infoElement.style.opacity = '0';
+    
+    const controlsToggleBtn = document.getElementById('controls-toggle');
+    controlsToggleBtn.innerHTML = '📋 Show Controls';
+}
+
+function scheduleControlsHide() {
+    if (!userHasMoved) {
+        userHasMoved = true;
+        if (controlsHideTimeout) {
+            clearTimeout(controlsHideTimeout);
+        }
+        controlsHideTimeout = setTimeout(hideControls, 5000); // Hide after 5 seconds
     }
 }
 
@@ -134,6 +181,11 @@ window.addEventListener('keydown', (event) => {
     
     // Start background music on first interaction
     startBackgroundMusic();
+    
+    // Schedule controls to hide after movement keys are pressed
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
+        scheduleControlsHide();
+    }
     
     // Jump handling
     if (event.code === 'Space') {
@@ -311,6 +363,20 @@ musicToggleBtn.addEventListener('click', () => {
         musicToggleBtn.innerHTML = '🔊 Music On';
     }
 });
+
+// Controls toggle functionality
+const controlsToggleBtn = document.getElementById('controls-toggle');
+controlsToggleBtn.addEventListener('click', () => {
+    const infoElement = document.getElementById('info');
+    if (infoElement.style.opacity === '0') {
+        showControls();
+    } else {
+        hideControls();
+    }
+});
+
+// Make sure controls are visible at the start
+showControls();
 
 // Start the game
 animate(); 

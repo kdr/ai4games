@@ -24,11 +24,10 @@
       pointer-events: none;
       z-index: 10;
       text-shadow: 1px 1px 2px black;
+      transition: opacity 0.5s ease;
     }
-    #music-toggle {
+    .control-btn {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
       padding: 10px;
       background: rgba(0, 0, 0, 0.5);
       color: white;
@@ -37,8 +36,16 @@
       cursor: pointer;
       z-index: 20;
     }
-    #music-toggle:hover {
+    .control-btn:hover {
       background: rgba(0, 0, 0, 0.7);
+    }
+    #music-toggle {
+      bottom: 20px;
+      right: 20px;
+    }
+    #controls-toggle {
+      bottom: 20px;
+      right: 140px;
     }
   </style>
 </head>
@@ -49,7 +56,8 @@
     <p>Use WASD to move relative to camera, SPACE to jump, SHIFT to double jump</p>
     <p>Use mouse to control camera direction</p>
   </div>
-  <button id="music-toggle">🔇 Music Off</button>
+  <button id="music-toggle" class="control-btn">🔇 Music Off</button>
+  <button id="controls-toggle" class="control-btn">📋 Hide Controls</button>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html> 
