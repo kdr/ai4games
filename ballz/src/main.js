@@ -34,7 +34,7 @@ orbitControls.enableDamping = true;
 orbitControls.dampingFactor = 0.05;
 orbitControls.screenSpacePanning = false;
 orbitControls.minDistance = 5;
-orbitControls.maxDistance = 50;
+orbitControls.maxDistance = 100; // Increased for the taller level
 orbitControls.maxPolarAngle = Math.PI / 2; // Restrict to not go below horizon
 orbitControls.minPolarAngle = Math.PI / 6; // Restrict to not go too high (almost top-down)
 orbitControls.rotateSpeed = 0.7; // Adjust rotate speed for better mouse control
@@ -301,39 +301,58 @@ const platforms = [
     // Base level platforms
     createPlatform(0, 0, 0, 4, 4, null, null, 0), // Base platform - stationary
     
-    // Lower section - layer with 3 platforms side by side
-    createPlatform(-3, 2, 0, 2, 2, null, 'x', 0.8),
-    createPlatform(0, 2, 0, 2, 2, null, null, 0), // Center platform - stationary
-    createPlatform(3, 2, 0, 2, 2, null, 'x', 0.8),
+    // Lower section - layer with 3 platforms side by side (spaced further apart)
+    createPlatform(-4, 3, 0, 2, 2, null, 'x', 0.8),
+    createPlatform(0, 3, 0, 2, 2, null, null, 0), // Center platform - stationary
+    createPlatform(4, 3, 0, 2, 2, null, 'x', 0.8),
     
-    // Mid-low section - single platform
-    createPlatform(0, 4, 0, 3, 3, null, 'y', 1),
+    // Mid-low section
+    createPlatform(0, 6, 0, 3, 3, null, 'y', 1),
     
     // Middle section - layer with 2 platforms
-    createPlatform(-2.5, 6, 0, 2, 2, null, null, 0), // Left platform - stationary
-    createPlatform(2.5, 6, 0, 2, 2, null, 'z', 1),  // Right platform - moving
+    createPlatform(-4, 9, 0, 2, 2, null, null, 0), // Left platform - stationary
+    createPlatform(4, 9, 0, 2, 2, null, 'z', 1),  // Right platform - moving
     
     // Middle-upper section - staggered arrangement
-    createPlatform(0, 8, -2, 2, 2, null, null, 0), // Back platform - stationary
-    createPlatform(0, 8, 2, 2, 2, null, 'x', 1),   // Front platform - moving
+    createPlatform(0, 12, -3, 2, 2, null, null, 0), // Back platform - stationary
+    createPlatform(0, 12, 3, 2, 2, null, 'x', 1),   // Front platform - moving
     
     // Upper section - layer with 3 platforms in triangle formation
-    createPlatform(0, 10, 0, 2, 2, null, 'y', 0.8),  // Center
-    createPlatform(-2, 10, -2, 1.8, 1.8, null, null, 0), // Back left - stationary
-    createPlatform(2, 10, -2, 1.8, 1.8, null, 'z', 0.8), // Back right
+    createPlatform(0, 15, 0, 2, 2, null, 'y', 0.8),  // Center
+    createPlatform(-3, 15, -3, 1.8, 1.8, null, null, 0), // Back left - stationary
+    createPlatform(3, 15, -3, 1.8, 1.8, null, 'z', 0.8), // Back right
     
-    // Higher section - single narrow platform
-    createPlatform(0, 12, 0, 2.5, 2.5, null, 'x', 1),
+    // Higher section - zigzag pattern
+    createPlatform(-4, 18, 0, 2, 2, null, 'x', 1), // Left
+    createPlatform(0, 21, 0, 2, 2, null, 'y', 0.8), // Center
+    createPlatform(4, 24, 0, 2, 2, null, 'z', 0.8), // Right
     
-    // Top section - layer with 2 platforms
-    createPlatform(-1.5, 14, 0, 1.5, 1.5, null, null, 0), // Left - stationary
-    createPlatform(1.5, 14, 0, 1.5, 1.5, null, 'z', 0.8), // Right
+    // Even higher section - side to side
+    createPlatform(-3, 27, 0, 2, 2, null, null, 0), // Left - stationary
+    createPlatform(3, 30, 0, 2, 2, null, 'x', 0.8), // Right
     
-    // Second to last - challenging small platform
-    createPlatform(0, 16, 0, 1.2, 1.2, null, 'y', 0.6),
+    // Top section - layer with split path
+    createPlatform(0, 33, 0, 2, 2, null, 'y', 0.8), // Center
+    createPlatform(-4, 33, -4, 1.5, 1.5, null, 'z', 0.8), // Left corner
+    createPlatform(4, 33, -4, 1.5, 1.5, null, 'x', 0.8), // Right corner
+    
+    // Upper challenge section
+    createPlatform(0, 36, -5, 1.8, 1.8, null, 'z', 0.8), // Back
+    createPlatform(-3, 39, 0, 1.5, 1.5, null, null, 0), // Left - stationary
+    createPlatform(3, 39, 0, 1.5, 1.5, null, 'x', 0.8), // Right
+    
+    // Near the top
+    createPlatform(0, 42, 0, 1.8, 1.8, null, 'y', 0.6), // Center moving up/down
+    createPlatform(-3, 45, 3, 1.5, 1.5, null, 'z', 0.8), // Left corner
+    createPlatform(3, 45, 3, 1.5, 1.5, null, 'x', 0.8), // Right corner
+    
+    // Top challenge - spaced stepping stones
+    createPlatform(-2, 48, 0, 1.2, 1.2, null, null, 0), // Left - stationary
+    createPlatform(0, 49, 0, 1.2, 1.2, null, 'y', 0.4), // Middle - moving
+    createPlatform(2, 50, 0, 1.2, 1.2, null, null, 0), // Right - stationary
     
     // Final platform
-    createPlatform(0, 18, 0, 2, 2, 0xFFD700, null, 0) // Gold color stationary platform
+    createPlatform(0, 54, 0, 2.5, 2.5, 0xFFD700, null, 0) // Gold color stationary platform
 ];
 
 // Input handling
@@ -624,8 +643,8 @@ function animate() {
     checkPlatformCollisions();
     
     // Simple boundary check
-    if (ball.position.y < -10) {
-        ball.position.set(0, 2, 0); // Reset to starting position
+    if (ball.position.y < -20) { // Increased fall distance before reset
+        ball.position.set(0, 3, 0); // Reset to starting position
         velocity.set(0, 0, 0);
     }
     
