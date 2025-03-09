@@ -143,11 +143,102 @@ scene.add(ball);
 const gravity = 0.015;
 const movementSpeed = 0.15; // Increased from 0.1 for tighter control
 const jumpForce = 0.35;
-const friction = 0.98; // Friction factor to slow ball movement
+const friction = 0.85; // Increased friction (lower value = more friction)
+const acceleration = 0.05; // Reduced acceleration for more precise control
 let velocity = new THREE.Vector3(0, 0, 0);
 let isOnGround = false;
 let canDoubleJump = false;
 let jumpCount = 0;
+
+// Particle system for double jump effect
+class ParticleSystem {
+    constructor(position, color = 0xFFFFFF, count = 30, lifetime = 60) {
+        this.particles = [];
+        this.active = false;
+        this.lifetime = lifetime;
+        this.age = 0;
+        
+        const particleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 1.0
+        });
+        
+        // Create particles
+        for (let i = 0; i < count; i++) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            particle.position.copy(position);
+            particle.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.2,
+                (Math.random()) * 0.2,
+                (Math.random() - 0.5) * 0.2
+            );
+            particle.scale.set(Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5);
+            scene.add(particle);
+            this.particles.push(particle);
+        }
+    }
+    
+    activate(position) {
+        this.active = true;
+        this.age = 0;
+        
+        // Reset particles
+        this.particles.forEach(particle => {
+            particle.position.copy(position);
+            particle.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.2,
+                (Math.random()) * 0.2,
+                (Math.random() - 0.5) * 0.2
+            );
+            particle.visible = true;
+            particle.scale.set(Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5);
+        });
+    }
+    
+    update() {
+        if (!this.active) return;
+        
+        this.age++;
+        
+        if (this.age > this.lifetime) {
+            this.active = false;
+            this.particles.forEach(particle => {
+                particle.visible = false;
+            });
+            return;
+        }
+        
+        const lifeProgress = this.age / this.lifetime;
+        
+        this.particles.forEach(particle => {
+            // Update position
+            particle.position.add(particle.velocity);
+            
+            // Apply gravity
+            particle.velocity.y -= 0.005;
+            
+            // Fade out particles as they age
+            particle.material.opacity = 1 - lifeProgress;
+            
+            // Shrink particles as they age
+            const scale = 1 - lifeProgress * 0.8;
+            particle.scale.set(scale, scale, scale);
+        });
+    }
+    
+    dispose() {
+        this.particles.forEach(particle => {
+            scene.remove(particle);
+            particle.geometry.dispose();
+            particle.material.dispose();
+        });
+    }
+}
+
+// Create particle system for double jumps
+const doubleJumpParticles = new ParticleSystem(new THREE.Vector3(), 0x00FFFF, 30, 60);
 
 // Platforms setup
 function createPlatform(x, y, z, width, depth, color, movementAxis, movementRange) {
@@ -204,30 +295,41 @@ function createCheckerboardTexture() {
 // Create some initial platforms - more platforms going upward with varied movement
 const platforms = [
     // Base level platforms
-    createPlatform(0, 0, 0, 4, 4, null, 'x', 1), // Base platform
+    createPlatform(0, 0, 0, 4, 4, null, null, 0), // Base platform - stationary
     
-    // Lower section - narrower platforms
-    createPlatform(0, 2, 0, 3, 3, null, 'y', 0.8),
-    createPlatform(0, 4, 0, 3, 3, null, 'x', 1),
+    // Lower section - layer with 3 platforms side by side
+    createPlatform(-3, 2, 0, 2, 2, null, 'x', 0.8),
+    createPlatform(0, 2, 0, 2, 2, null, null, 0), // Center platform - stationary
+    createPlatform(3, 2, 0, 2, 2, null, 'x', 0.8),
     
-    // Middle section - Jenga-like staggered arrangement
-    createPlatform(1.5, 6, 0, 3, 2, null, 'z', 1),
-    createPlatform(-1.5, 8, 0, 3, 2, null, 'z', 1),
-    createPlatform(0, 10, 1.5, 2, 3, null, 'x', 1),
-    createPlatform(0, 12, -1.5, 2, 3, null, 'x', 1),
+    // Mid-low section - single platform
+    createPlatform(0, 4, 0, 3, 3, null, 'y', 1),
     
-    // Upper section - even narrower
-    createPlatform(0, 14, 0, 2.5, 2.5, null, 'y', 0.8),
-    createPlatform(1, 16, 0, 2, 2, null, 'x', 0.8),
-    createPlatform(-1, 18, 0, 2, 2, null, 'z', 0.8),
+    // Middle section - layer with 2 platforms
+    createPlatform(-2.5, 6, 0, 2, 2, null, null, 0), // Left platform - stationary
+    createPlatform(2.5, 6, 0, 2, 2, null, 'z', 1),  // Right platform - moving
     
-    // Top section - challenging small platforms
-    createPlatform(0, 20, 1, 1.5, 1.5, null, 'x', 0.8),
-    createPlatform(0, 22, -1, 1.5, 1.5, null, 'z', 0.8),
-    createPlatform(0, 24, 0, 1.5, 1.5, null, 'y', 0.6),
+    // Middle-upper section - staggered arrangement
+    createPlatform(0, 8, -2, 2, 2, null, null, 0), // Back platform - stationary
+    createPlatform(0, 8, 2, 2, 2, null, 'x', 1),   // Front platform - moving
+    
+    // Upper section - layer with 3 platforms in triangle formation
+    createPlatform(0, 10, 0, 2, 2, null, 'y', 0.8),  // Center
+    createPlatform(-2, 10, -2, 1.8, 1.8, null, null, 0), // Back left - stationary
+    createPlatform(2, 10, -2, 1.8, 1.8, null, 'z', 0.8), // Back right
+    
+    // Higher section - single narrow platform
+    createPlatform(0, 12, 0, 2.5, 2.5, null, 'x', 1),
+    
+    // Top section - layer with 2 platforms
+    createPlatform(-1.5, 14, 0, 1.5, 1.5, null, null, 0), // Left - stationary
+    createPlatform(1.5, 14, 0, 1.5, 1.5, null, 'z', 0.8), // Right
+    
+    // Second to last - challenging small platform
+    createPlatform(0, 16, 0, 1.2, 1.2, null, 'y', 0.6),
     
     // Final platform
-    createPlatform(0, 26, 0, 2, 2, 0xFFD700, null, 0) // Gold color for the final platform
+    createPlatform(0, 18, 0, 2, 2, 0xFFD700, null, 0) // Gold color stationary platform
 ];
 
 // Input handling
@@ -293,10 +395,25 @@ window.addEventListener('keydown', (event) => {
             isOnGround = false;
             jumpCount = 1;
             canDoubleJump = true;
+            
+            // Add forward spin when jumping
+            const spinAxis = new THREE.Vector3(1, 0, 0);
+            ball.rotateOnAxis(spinAxis, Math.PI * 0.5); // 90 degree rotation
         } else if (canDoubleJump && jumpCount === 1) {
             velocity.y = jumpForce * 0.9;
             jumpCount = 2;
             canDoubleJump = false;
+            
+            // Add more dramatic spin for double jump
+            const spinAxis = new THREE.Vector3(
+                Math.random() - 0.5,
+                Math.random() - 0.5,
+                Math.random() - 0.5
+            ).normalize();
+            ball.rotateOnAxis(spinAxis, Math.PI * 2); // 360 degree rotation
+            
+            // Activate particle effect
+            doubleJumpParticles.activate(ball.position.clone());
         }
     }
 });
@@ -384,6 +501,9 @@ function checkPlatformCollisions() {
 function animate() {
     requestAnimationFrame(animate);
     
+    // Update particle effects
+    doubleJumpParticles.update();
+    
     // Update platform positions
     platforms.forEach(platform => {
         if (platform.userData.movementAxis && platform.userData.movementRange > 0) {
@@ -450,9 +570,9 @@ function animate() {
     // Normalize the final direction
     if (moveDirection.length() > 0) {
         moveDirection.normalize();
-        // Apply movement with acceleration
-        velocity.x += moveDirection.x * movementSpeed * 0.1;
-        velocity.z += moveDirection.z * movementSpeed * 0.1;
+        // Apply movement with reduced acceleration
+        velocity.x += moveDirection.x * movementSpeed * acceleration;
+        velocity.z += moveDirection.z * movementSpeed * acceleration;
         
         // Cap max speed
         const maxHorizontalSpeed = movementSpeed;
@@ -464,14 +584,14 @@ function animate() {
         }
     }
     
-    // Apply friction
+    // Apply higher friction
     if (isOnGround) {
         velocity.x *= friction;
         velocity.z *= friction;
         
         // If velocity is very small, set it to zero to prevent sliding
-        if (Math.abs(velocity.x) < 0.005) velocity.x = 0;
-        if (Math.abs(velocity.z) < 0.005) velocity.z = 0;
+        if (Math.abs(velocity.x) < 0.003) velocity.x = 0;
+        if (Math.abs(velocity.z) < 0.003) velocity.z = 0;
     }
     
     // Apply gravity
