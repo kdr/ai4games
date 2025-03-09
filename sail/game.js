@@ -14,6 +14,8 @@ let moveRight = false;
 let fogEnabled = true;
 let islandVisited = [];
 let cameraView = 'behind'; // Default camera view
+let backgroundMusic; // Audio element for background music
+let musicPlaying = true; // Track if music is playing
 
 // Game state
 const gameState = {
@@ -43,6 +45,9 @@ function init() {
     
     // Add light fog
     scene.fog = new THREE.FogExp2(0xdfe9f3, 0.0008);
+    
+    // Initialize background music
+    setupBackgroundMusic();
     
     // Create the camera
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 20000);
@@ -493,6 +498,10 @@ function onKeyDown(event) {
             // Toggle camera view
             toggleCameraView();
             break;
+        case 'KeyM':
+            // Toggle music
+            toggleMusic();
+            break;
     }
 }
 
@@ -605,6 +614,47 @@ function checkIslandProximity() {
     });
 }
 
+// Setup background music
+function setupBackgroundMusic() {
+    backgroundMusic = new Audio('sail.mp3');
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.5;
+    
+    // Start playing music
+    backgroundMusic.play().catch(error => {
+        console.log('Audio playback failed:', error);
+        console.log('User interaction is needed to play audio in some browsers.');
+    });
+    
+    // Add button to control music
+    const musicButton = document.createElement('button');
+    musicButton.textContent = 'Toggle Music';
+    musicButton.style.position = 'absolute';
+    musicButton.style.bottom = '10px';
+    musicButton.style.right = '10px';
+    musicButton.style.zIndex = '100';
+    musicButton.style.padding = '8px 16px';
+    musicButton.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    musicButton.style.color = 'white';
+    musicButton.style.border = 'none';
+    musicButton.style.borderRadius = '4px';
+    musicButton.style.cursor = 'pointer';
+    
+    musicButton.addEventListener('click', toggleMusic);
+    document.getElementById('game-container').appendChild(musicButton);
+}
+
+// Toggle music on/off
+function toggleMusic() {
+    if (musicPlaying) {
+        backgroundMusic.pause();
+        musicPlaying = false;
+    } else {
+        backgroundMusic.play();
+        musicPlaying = true;
+    }
+}
+
 // Update instructions in the HTML to include new controls
 function updateInstructions() {
     const instructions = document.getElementById('instructions');
@@ -615,6 +665,7 @@ function updateInstructions() {
         <p>D/→: Turn Right</p>
         <p>Space/C: Change Camera View</p>
         <p>F: Toggle Fog</p>
+        <p>M: Toggle Music</p>
     `;
 }
 
