@@ -102,7 +102,7 @@ scene.add(ball);
 
 // Physics and movement variables
 const gravity = 0.015;
-const movementSpeed = 0.1;
+const movementSpeed = 0.15; // Increased from 0.1 for tighter control
 const jumpForce = 0.35;
 let velocity = new THREE.Vector3(0, 0, 0);
 let isOnGround = false;
@@ -129,7 +129,7 @@ function createPlatform(x, y, z, width, depth, color, movementAxis, movementRang
         originalPosition: new THREE.Vector3(x, y, z),
         movementAxis: movementAxis || null, // 'x', 'y', or 'z'
         movementRange: movementRange || 0,  // How far to move
-        movementSpeed: Math.random() * 0.02 + 0.01, // Random speed between 0.01 and 0.03
+        movementSpeed: 0.02, // Standardized speed for all platforms
         movementDirection: 1 // 1 or -1 for direction
     };
     scene.add(platform);
@@ -431,7 +431,9 @@ function animate() {
         velocity.set(0, 0, 0);
     }
     
-    // Update camera to follow the ball a bit
+    // Update camera to follow the ball
+    const cameraOffset = new THREE.Vector3(0, 8, 12); // Maintain the same offset
+    camera.position.copy(ball.position).add(cameraOffset);
     orbitControls.target.copy(ball.position);
     orbitControls.update();
     
