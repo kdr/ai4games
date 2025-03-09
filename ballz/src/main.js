@@ -19,7 +19,7 @@ scene.background = new THREE.Color(0x87CEEB); // Sky blue background
 
 // Camera setup
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 3, 6);
+camera.position.set(0, 8, 12); // Move the camera higher and further back
 camera.add(audioListener); // Add audio listener to the camera
 
 // Renderer setup
@@ -110,25 +110,80 @@ let canDoubleJump = false;
 let jumpCount = 0;
 
 // Platforms setup
-function createPlatform(x, y, z, width, depth, color) {
+function createPlatform(x, y, z, width, depth, color, movementAxis, movementRange) {
     const geometry = new THREE.BoxGeometry(width, 0.5, depth);
-    const material = new THREE.MeshStandardMaterial({ color: color || 0x996633 });
+    
+    // Create a checkerboard pattern material
+    const checkerboardTexture = createCheckerboardTexture();
+    const material = new THREE.MeshStandardMaterial({ 
+        map: checkerboardTexture,
+        color: color || 0xFFFFFF // Use white as base color to preserve checkerboard pattern
+    });
+    
     const platform = new THREE.Mesh(geometry, material);
     platform.position.set(x, y, z);
     platform.castShadow = true;
     platform.receiveShadow = true;
-    platform.userData = { isPlatform: true };
+    platform.userData = { 
+        isPlatform: true,
+        originalPosition: new THREE.Vector3(x, y, z),
+        movementAxis: movementAxis || null, // 'x', 'y', or 'z'
+        movementRange: movementRange || 0,  // How far to move
+        movementSpeed: Math.random() * 0.02 + 0.01, // Random speed between 0.01 and 0.03
+        movementDirection: 1 // 1 or -1 for direction
+    };
     scene.add(platform);
     return platform;
 }
 
-// Create some initial platforms
+// Create a checkerboard texture
+function createCheckerboardTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    
+    // Draw checkerboard pattern
+    const tileSize = size / 8; // 8x8 checkerboard
+    for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+            context.fillStyle = (x + y) % 2 === 0 ? '#663300' : '#996633'; // Dark and light brown
+            context.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    
+    return texture;
+}
+
+// Create some initial platforms - more platforms going upward with varied movement
 const platforms = [
-    createPlatform(2, 0, 2, 3, 3, 0x8B4513),
-    createPlatform(-3, 1, -2, 3, 2, 0x8B4513),
-    createPlatform(0, 2, -4, 4, 3, 0x8B4513),
-    createPlatform(4, 3, -2, 2, 2, 0x8B4513),
-    createPlatform(-3, 4, 0, 3, 3, 0x8B4513)
+    // Ground level and near-ground platforms
+    createPlatform(2, 0, 2, 3, 3, null, 'x', 2),
+    createPlatform(-3, 1, -2, 3, 2, null, 'z', 2),
+    createPlatform(0, 2, -4, 4, 3, null, 'y', 1),
+    createPlatform(4, 3, -2, 2, 2, null, 'x', 1.5),
+    createPlatform(-3, 4, 0, 3, 3, null, 'z', 1.8),
+    
+    // Mid-level platforms
+    createPlatform(0, 5.5, 3, 2.5, 2, null, 'y', 1.2),
+    createPlatform(3, 6, -1, 2, 2.5, null, 'x', 2),
+    createPlatform(-4, 7, -3, 2, 2, null, 'z', 1.5),
+    
+    // Higher platforms
+    createPlatform(2, 8.5, 2, 2, 2, null, 'y', 1),
+    createPlatform(-2, 9, 4, 2.5, 3, null, 'x', 1.8),
+    createPlatform(0, 10.5, 0, 2, 2, null, 'z', 1.4),
+    createPlatform(3, 12, 3, 2, 2.5, null, 'y', 1.3),
+    
+    // Top-level platforms
+    createPlatform(-3, 13.5, -2, 2, 2, null, 'x', 1.6),
+    createPlatform(1, 15, 0, 3, 3, null, 'z', 1.5)
 ];
 
 // Input handling
@@ -214,6 +269,9 @@ function checkPlatformCollisions() {
     let wasOnGround = isOnGround;
     isOnGround = false;
     
+    // Track which platform the ball is on (if any)
+    let currentPlatform = null;
+    
     // Check if ball is on ground plane
     if (ballPosition.y - ballRadius <= ground.position.y && velocity.y <= 0) {
         isOnGround = true;
@@ -247,7 +305,27 @@ function checkPlatformCollisions() {
                 velocity.y = 0;
                 ball.position.y = platformY + ballRadius;
                 jumpCount = 0;
-                return;
+                
+                // Track which platform the ball is on
+                currentPlatform = platform;
+                
+                // Apply platform movement to the ball if this is a moving platform
+                if (platform.userData.movementAxis) {
+                    // Move ball along with the platform
+                    const axis = platform.userData.movementAxis;
+                    const speed = platform.userData.movementSpeed;
+                    const direction = platform.userData.movementDirection;
+                    
+                    // Apply platform movement to ball
+                    if (axis === 'x') {
+                        ball.position.x += speed * direction;
+                    } else if (axis === 'z') {
+                        ball.position.z += speed * direction;
+                    }
+                    // y-axis movement is handled by the platform pushing the ball up
+                }
+                
+                break;
             }
         }
     }
@@ -261,6 +339,26 @@ function checkPlatformCollisions() {
 // Game loop
 function animate() {
     requestAnimationFrame(animate);
+    
+    // Update platform positions
+    platforms.forEach(platform => {
+        if (platform.userData.movementAxis && platform.userData.movementRange > 0) {
+            const axis = platform.userData.movementAxis;
+            const originalPos = platform.userData.originalPosition[axis];
+            const range = platform.userData.movementRange;
+            const speed = platform.userData.movementSpeed;
+            const direction = platform.userData.movementDirection;
+            
+            // Move platform
+            platform.position[axis] += speed * direction;
+            
+            // Check if need to change direction
+            if (platform.position[axis] > originalPos + range || 
+                platform.position[axis] < originalPos - range) {
+                platform.userData.movementDirection *= -1;
+            }
+        }
+    });
     
     // Movement controls
     const direction = new THREE.Vector3(0, 0, 0);
@@ -329,7 +427,7 @@ function animate() {
     
     // Simple boundary check
     if (ball.position.y < -10) {
-        ball.position.set(0, 3, 0);
+        ball.position.set(2, 2, 2); // Reset to the first platform position
         velocity.set(0, 0, 0);
     }
     
