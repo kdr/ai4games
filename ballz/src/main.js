@@ -39,6 +39,10 @@ orbitControls.maxPolarAngle = Math.PI / 2; // Restrict to not go below horizon
 orbitControls.minPolarAngle = Math.PI / 6; // Restrict to not go too high (almost top-down)
 orbitControls.rotateSpeed = 0.7; // Adjust rotate speed for better mouse control
 
+// Enable mouse rotation
+orbitControls.enableRotate = true;
+orbitControls.autoRotate = false;
+
 // Disable keyboard navigation in OrbitControls since we handle it ourselves
 orbitControls.enableKeys = false;
 
@@ -626,9 +630,14 @@ function animate() {
     }
     
     // Update camera to follow the ball
-    const cameraOffset = new THREE.Vector3(0, 8, 12); // Maintain the same offset
-    camera.position.copy(ball.position).add(cameraOffset);
+    // Store the current distance from camera to target
+    const currentDistance = camera.position.distanceTo(orbitControls.target);
+    // Update the target to the ball position
     orbitControls.target.copy(ball.position);
+    // Calculate direction from target to camera
+    const directionFromTarget = new THREE.Vector3().subVectors(camera.position, orbitControls.target).normalize();
+    // Set camera position to target + direction * distance
+    camera.position.copy(orbitControls.target).add(directionFromTarget.multiplyScalar(currentDistance));
     orbitControls.update();
     
     renderer.render(scene, camera);
@@ -671,6 +680,14 @@ controlsToggleBtn.addEventListener('click', () => {
 
 // Make sure controls are visible at the start
 showControls();
+
+// Add some UI instructions for camera rotation
+const infoElement = document.getElementById('info');
+if (infoElement) {
+    const cameraControlsInfo = document.createElement('p');
+    cameraControlsInfo.textContent = 'Use mouse drag to rotate camera, scroll to zoom';
+    infoElement.appendChild(cameraControlsInfo);
+}
 
 // Start the game
 animate(); 
