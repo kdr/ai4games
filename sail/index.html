@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunset Sailing Adventure</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading-screen">Loading...</div>
+        <div id="hud">
+            <div id="compass">N</div>
+            <div id="speed">Speed: 0 knots</div>
+        </div>
+        <div id="instructions">
+            <p>W/↑: Accelerate</p>
+            <p>S/↓: Decelerate</p>
+            <p>A/←: Turn Left</p>
+            <p>D/→: Turn Right</p>
+            <p>Space: Reset Camera</p>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Water.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Sky.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html> 
