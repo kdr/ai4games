@@ -89,11 +89,50 @@ scene.add(ground);
 // Player (ball) setup
 const ballRadius = 0.5;
 const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+
+// Create a textured ball material with grid pattern to visualize rotation
+function createBallTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    
+    // Fill background
+    context.fillStyle = '#FF0000';
+    context.fillRect(0, 0, size, size);
+    
+    // Draw grid lines
+    context.strokeStyle = '#FFFFFF';
+    context.lineWidth = 6;
+    
+    // Draw longitude lines
+    for (let i = 0; i < 5; i++) {
+        context.beginPath();
+        context.moveTo(i * (size / 4), 0);
+        context.lineTo(i * (size / 4), size);
+        context.stroke();
+    }
+    
+    // Draw latitude lines
+    for (let i = 0; i < 5; i++) {
+        context.beginPath();
+        context.moveTo(0, i * (size / 4));
+        context.lineTo(size, i * (size / 4));
+        context.stroke();
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+}
+
+const ballTexture = createBallTexture();
 const ballMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xFF0000,
+    map: ballTexture,
     roughness: 0.5,
     metalness: 0.7
 });
+
 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
 ball.position.set(0, 1, 0);
 ball.castShadow = true;
@@ -104,6 +143,7 @@ scene.add(ball);
 const gravity = 0.015;
 const movementSpeed = 0.15; // Increased from 0.1 for tighter control
 const jumpForce = 0.35;
+const friction = 0.98; // Friction factor to slow ball movement
 let velocity = new THREE.Vector3(0, 0, 0);
 let isOnGround = false;
 let canDoubleJump = false;
@@ -163,27 +203,31 @@ function createCheckerboardTexture() {
 
 // Create some initial platforms - more platforms going upward with varied movement
 const platforms = [
-    // Ground level and near-ground platforms
-    createPlatform(2, 0, 2, 3, 3, null, 'x', 2),
-    createPlatform(-3, 1, -2, 3, 2, null, 'z', 2),
-    createPlatform(0, 2, -4, 4, 3, null, 'y', 1),
-    createPlatform(4, 3, -2, 2, 2, null, 'x', 1.5),
-    createPlatform(-3, 4, 0, 3, 3, null, 'z', 1.8),
+    // Base level platforms
+    createPlatform(0, 0, 0, 4, 4, null, 'x', 1), // Base platform
     
-    // Mid-level platforms
-    createPlatform(0, 5.5, 3, 2.5, 2, null, 'y', 1.2),
-    createPlatform(3, 6, -1, 2, 2.5, null, 'x', 2),
-    createPlatform(-4, 7, -3, 2, 2, null, 'z', 1.5),
+    // Lower section - narrower platforms
+    createPlatform(0, 2, 0, 3, 3, null, 'y', 0.8),
+    createPlatform(0, 4, 0, 3, 3, null, 'x', 1),
     
-    // Higher platforms
-    createPlatform(2, 8.5, 2, 2, 2, null, 'y', 1),
-    createPlatform(-2, 9, 4, 2.5, 3, null, 'x', 1.8),
-    createPlatform(0, 10.5, 0, 2, 2, null, 'z', 1.4),
-    createPlatform(3, 12, 3, 2, 2.5, null, 'y', 1.3),
+    // Middle section - Jenga-like staggered arrangement
+    createPlatform(1.5, 6, 0, 3, 2, null, 'z', 1),
+    createPlatform(-1.5, 8, 0, 3, 2, null, 'z', 1),
+    createPlatform(0, 10, 1.5, 2, 3, null, 'x', 1),
+    createPlatform(0, 12, -1.5, 2, 3, null, 'x', 1),
     
-    // Top-level platforms
-    createPlatform(-3, 13.5, -2, 2, 2, null, 'x', 1.6),
-    createPlatform(1, 15, 0, 3, 3, null, 'z', 1.5)
+    // Upper section - even narrower
+    createPlatform(0, 14, 0, 2.5, 2.5, null, 'y', 0.8),
+    createPlatform(1, 16, 0, 2, 2, null, 'x', 0.8),
+    createPlatform(-1, 18, 0, 2, 2, null, 'z', 0.8),
+    
+    // Top section - challenging small platforms
+    createPlatform(0, 20, 1, 1.5, 1.5, null, 'x', 0.8),
+    createPlatform(0, 22, -1, 1.5, 1.5, null, 'z', 0.8),
+    createPlatform(0, 24, 0, 1.5, 1.5, null, 'y', 0.6),
+    
+    // Final platform
+    createPlatform(0, 26, 0, 2, 2, 0xFFD700, null, 0) // Gold color for the final platform
 ];
 
 // Input handling
@@ -406,12 +450,28 @@ function animate() {
     // Normalize the final direction
     if (moveDirection.length() > 0) {
         moveDirection.normalize();
-        // Apply movement
-        velocity.x = moveDirection.x * movementSpeed;
-        velocity.z = moveDirection.z * movementSpeed;
-    } else {
-        velocity.x = 0;
-        velocity.z = 0;
+        // Apply movement with acceleration
+        velocity.x += moveDirection.x * movementSpeed * 0.1;
+        velocity.z += moveDirection.z * movementSpeed * 0.1;
+        
+        // Cap max speed
+        const maxHorizontalSpeed = movementSpeed;
+        const horizontalSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+        if (horizontalSpeed > maxHorizontalSpeed) {
+            const scale = maxHorizontalSpeed / horizontalSpeed;
+            velocity.x *= scale;
+            velocity.z *= scale;
+        }
+    }
+    
+    // Apply friction
+    if (isOnGround) {
+        velocity.x *= friction;
+        velocity.z *= friction;
+        
+        // If velocity is very small, set it to zero to prevent sliding
+        if (Math.abs(velocity.x) < 0.005) velocity.x = 0;
+        if (Math.abs(velocity.z) < 0.005) velocity.z = 0;
     }
     
     // Apply gravity
@@ -422,12 +482,26 @@ function animate() {
     // Update position
     ball.position.add(velocity);
     
+    // Rotate the ball based on its movement
+    if (isOnGround && (velocity.x !== 0 || velocity.z !== 0)) {
+        // Calculate rotation axis (perpendicular to movement direction)
+        const movementDir = new THREE.Vector3(velocity.x, 0, velocity.z).normalize();
+        const rotationAxis = new THREE.Vector3(movementDir.z, 0, -movementDir.x);
+        
+        // Calculate rotation amount (based on distance traveled)
+        const distance = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+        const rotationAngle = distance / ballRadius;
+        
+        // Apply rotation
+        ball.rotateOnAxis(rotationAxis, rotationAngle);
+    }
+    
     // Check collisions
     checkPlatformCollisions();
     
     // Simple boundary check
     if (ball.position.y < -10) {
-        ball.position.set(2, 2, 2); // Reset to the first platform position
+        ball.position.set(0, 2, 0); // Reset to starting position
         velocity.set(0, 0, 0);
     }
     
