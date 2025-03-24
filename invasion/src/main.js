@@ -5,7 +5,9 @@ const ALIEN_ROWS = 5;
 const ALIENS_PER_ROW = 11;
 const ALIEN_SPACING = 2.5;
 const ALIEN_MOVE_SPEED = 0.02;
+const ALIEN_STEP_SIZE = 0.5; // Size of each horizontal step
 const ALIEN_DROP_SPEED = 3.0;
+const ALIEN_MOVE_INTERVAL = 0.3; // Time between steps
 const PLAYER_SPEED = 0.75;
 const BULLET_SPEED = 0.5;
 const SHIELD_SEGMENTS = 8; // Number of segments horizontally
@@ -22,7 +24,9 @@ let player;
 let scene, camera, renderer;
 let alienDirection = 1;
 let alienDropCounter = 0;
+let alienMoveCounter = 0;
 let gameOver = false;
+let gameWon = false;
 
 // Initialize the game
 function init() {
@@ -48,6 +52,9 @@ function init() {
     createPlayer();
     createShields();
     createBullets();
+
+    // Add victory text
+    const victoryText = createVictoryText();
 
     // Event listeners
     window.addEventListener('resize', onWindowResize, false);
@@ -156,12 +163,12 @@ function onKeyDown(event) {
 
     switch(event.key) {
         case 'ArrowLeft':
-            if (player.position.x > -20) {
+            if (player.position.x > -25) {
                 player.position.x -= PLAYER_SPEED;
             }
             break;
         case 'ArrowRight':
-            if (player.position.x < 20) {
+            if (player.position.x < 25) {
                 player.position.x += PLAYER_SPEED;
             }
             break;
@@ -182,38 +189,81 @@ function fireBullet() {
     }
 }
 
+// Create victory text
+function createVictoryText() {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 512;
+    canvas.height = 128;
+    context.fillStyle = '#ffffff';
+    context.font = 'bold 60px Arial';
+    context.fillText('VICTORY!', 120, 80);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true
+    });
+    const geometry = new THREE.PlaneGeometry(10, 2.5);
+    const victoryMesh = new THREE.Mesh(geometry, material);
+    victoryMesh.position.set(0, 0, 1);
+    victoryMesh.visible = false;
+    scene.add(victoryMesh);
+    return victoryMesh;
+}
+
 // Update game state
 function update() {
     if (gameOver) return;
 
-    // Update aliens
-    alienDropCounter += ALIEN_MOVE_SPEED;
-
-    // Check if any alien has reached the boundaries
-    let shouldChangeDirection = false;
-    aliens.forEach(alien => {
-        if (alien.visible) {
-            if ((alienDirection > 0 && alien.position.x >= 20) || 
-                (alienDirection < 0 && alien.position.x <= -20)) {
-                shouldChangeDirection = true;
+    // Check for victory condition
+    if (!gameWon) {
+        let allAliensDestroyed = true;
+        aliens.forEach(alien => {
+            if (alien.visible) {
+                allAliensDestroyed = false;
             }
+        });
+        
+        if (allAliensDestroyed) {
+            gameWon = true;
+            scene.children.forEach(child => {
+                if (child.geometry && child.geometry.type === 'PlaneGeometry') {
+                    child.visible = true;
+                }
+            });
         }
-    });
-
-    if (shouldChangeDirection) {
-        alienDropCounter = ALIEN_DROP_SPEED; // Force a drop
     }
 
-    if (alienDropCounter >= ALIEN_DROP_SPEED) {
-        alienDropCounter = 0;
-        alienDirection *= -1;
+    // Update aliens with step-like movement
+    alienMoveCounter += ALIEN_MOVE_SPEED;
+
+    // Check if it's time for next step
+    if (alienMoveCounter >= ALIEN_MOVE_INTERVAL) {
+        alienMoveCounter = 0;
+        
+        // Check if any alien has reached the boundaries
+        let shouldChangeDirection = false;
         aliens.forEach(alien => {
-            alien.position.y -= 0.1;
+            if (alien.visible) {
+                if ((alienDirection > 0 && alien.position.x >= 25) || 
+                    (alienDirection < 0 && alien.position.x <= -25)) {
+                    shouldChangeDirection = true;
+                }
+            }
         });
-    } else {
-        aliens.forEach(alien => {
-            alien.position.x += ALIEN_MOVE_SPEED * alienDirection;
-        });
+
+        if (shouldChangeDirection) {
+            alienDirection *= -1;
+            aliens.forEach(alien => {
+                alien.position.y -= 0.5; // Make vertical drops more pronounced
+            });
+        } else {
+            // Move all aliens one step
+            aliens.forEach(alien => {
+                alien.position.x += ALIEN_STEP_SIZE * alienDirection;
+            });
+        }
     }
 
     // Check if aliens reached bottom
@@ -227,11 +277,7 @@ function update() {
     bullets.forEach(bullet => {
         if (bullet.visible) {
             bullet.position.y += BULLET_SPEED * bullet.userData.direction;
-
-            // Check bullet collisions
             checkBulletCollisions(bullet);
-
-            // Remove bullets that go off screen (increased upper bound)
             if (bullet.position.y > 15 || bullet.position.y < -10) {
                 bullet.visible = false;
             }
