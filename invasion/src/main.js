@@ -4,27 +4,41 @@ import * as THREE from 'three';
 const ALIEN_ROWS = 5;
 const ALIENS_PER_ROW = 11;
 const ALIEN_SPACING = 2.5;
-const ALIEN_MOVE_SPEED = 0.02;
-const ALIEN_STEP_SIZE = 0.5; // Size of each horizontal step
+const ALIEN_BASE_MOVE_SPEED = 0.02;
+const ALIEN_STEP_SIZE = 0.5;
 const ALIEN_DROP_SPEED = 3.0;
-const ALIEN_MOVE_INTERVAL = 0.3; // Time between steps
-const PLAYER_SPEED = 0.75;
+const ALIEN_MOVE_INTERVAL = 0.3;
+const ALIEN_SHOOT_CHANCE = 0.06;
+const ALIEN_DROP_DISTANCE = 1.2; // Increased from 0.65
+const SPEED_INCREASE_FACTOR = 1.2; // Increased from 1.1 (20% faster per drop)
+const EXPLOSION_PARTICLES = 15; // Number of particles per explosion
+const PARTICLE_SPEED = 0.2;
+const PARTICLE_LIFETIME = 1000; // milliseconds
+const PLAYER_SPEED = 1.0;
 const BULLET_SPEED = 0.5;
-const SHIELD_SEGMENTS = 8; // Number of segments horizontally
-const SHIELD_ROWS = 6;     // Number of segments vertically
+const SHIELD_SEGMENTS = 8;     // Number of segments horizontally
+const SHIELD_ROWS = 3;         // Reduced from 6 to 3 for half height
+const SHIELD_WIDTH = 3;        // Total shield width
+const SHIELD_HEIGHT = 1;       // Total shield height (reduced from 2)
 const SHIELD_HEALTH = 5;
 const SHIELD_DAMAGE_THRESHOLD = 0.4;
+const PLAYER_LIVES = 3;
 
 // Game state
 let score = 0;
+let lives = PLAYER_LIVES;
 let aliens = [];
 let bullets = [];
+let alienBullets = [];
 let shields = [];
+let particles = [];
 let player;
+let lifeDisplays = [];
 let scene, camera, renderer;
 let alienDirection = 1;
 let alienDropCounter = 0;
 let alienMoveCounter = 0;
+let currentAlienSpeed = ALIEN_BASE_MOVE_SPEED;
 let gameOver = false;
 let gameWon = false;
 
@@ -52,6 +66,8 @@ function init() {
     createPlayer();
     createShields();
     createBullets();
+    createAlienBullets();
+    createLifeDisplays();
 
     // Add victory text
     const victoryText = createVictoryText();
@@ -63,16 +79,45 @@ function init() {
 
 // Create alien fleet
 function createAliens() {
-    const alienColors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff]; // Different colors for each row
+    const alienColors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+    
     for (let row = 0; row < ALIEN_ROWS; row++) {
         for (let col = 0; col < ALIENS_PER_ROW; col++) {
-            const geometry = new THREE.BoxGeometry(1.5, 1.5, 0.5);
-            const material = new THREE.MeshPhongMaterial({ color: alienColors[row % alienColors.length] });
+            let geometry;
+            
+            // Different shapes for each row
+            switch(row) {
+                case 0: // Top row - Octahedron
+                    geometry = new THREE.OctahedronGeometry(0.75);
+                    break;
+                case 1: // Second row - Dodecahedron
+                    geometry = new THREE.DodecahedronGeometry(0.75);
+                    break;
+                case 2: // Middle row - Box
+                    geometry = new THREE.BoxGeometry(1.5, 1.5, 0.5);
+                    break;
+                case 3: // Fourth row - Tetrahedron
+                    geometry = new THREE.TetrahedronGeometry(0.85);
+                    break;
+                case 4: // Bottom row - Torus
+                    geometry = new THREE.TorusGeometry(0.6, 0.3, 8, 16);
+                    break;
+            }
+            
+            const material = new THREE.MeshPhongMaterial({ 
+                color: alienColors[row % alienColors.length],
+                flatShading: true
+            });
             const alien = new THREE.Mesh(geometry, material);
             
             alien.position.x = (col - (ALIENS_PER_ROW - 1) / 2) * ALIEN_SPACING;
             alien.position.y = 12 - row * ALIEN_SPACING;
             alien.position.z = 0;
+            
+            // Add rotation for certain shapes
+            if (row === 4) { // Rotate torus to face forward
+                alien.rotation.x = Math.PI / 2;
+            }
             
             aliens.push(alien);
             scene.add(alien);
@@ -94,8 +139,8 @@ function createPlayer() {
 function createShields() {
     for (let i = 0; i < 4; i++) {
         // Create shield segments
-        const segmentWidth = 3 / SHIELD_SEGMENTS;  // Total width is 3 units
-        const segmentHeight = 2 / SHIELD_ROWS;     // Total height is 2 units
+        const segmentWidth = SHIELD_WIDTH / SHIELD_SEGMENTS;
+        const segmentHeight = SHIELD_HEIGHT / SHIELD_ROWS;
         const segments = [];
         
         for (let row = 0; row < SHIELD_ROWS; row++) {
@@ -111,7 +156,7 @@ function createShields() {
                 
                 // Position segment within shield
                 segment.position.x = (i - 1.5) * 6 + (col - SHIELD_SEGMENTS/2 + 0.5) * segmentWidth;
-                segment.position.y = -5 + (row - SHIELD_ROWS/2 + 0.5) * segmentHeight;
+                segment.position.y = -5.5 + (row - SHIELD_ROWS/2 + 0.5) * segmentHeight; // Adjusted Y position
                 segment.position.z = 0;
                 
                 // Skip middle segments at bottom to create classic shape
@@ -119,7 +164,7 @@ function createShields() {
                     segment.visible = false;
                 }
                 
-                segment.userData.health = 3; // Each segment has its own health
+                segment.userData.health = 3;
                 segments.push(segment);
                 scene.add(segment);
             }
@@ -140,9 +185,50 @@ function createBullets() {
     }
 }
 
+// Create life display
+function createLifeDisplays() {
+    for (let i = 0; i < PLAYER_LIVES; i++) {
+        const geometry = new THREE.BoxGeometry(0.8, 0.4, 0.5);
+        const material = new THREE.MeshPhongMaterial({ color: 0x00ffff });
+        const life = new THREE.Mesh(geometry, material);
+        life.position.set(-12 + i * 1.2, -9, 0);
+        lifeDisplays.push(life);
+        scene.add(life);
+    }
+}
+
+// Update life display
+function updateLifeDisplay() {
+    lifeDisplays.forEach((life, index) => {
+        life.visible = index < lives;
+    });
+}
+
+// Create bullet pool for alien bullets
+function createAlienBullets() {
+    for (let i = 0; i < 20; i++) {
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const material = new THREE.MeshPhongMaterial({ color: 0xff0000 }); // Red for alien bullets
+        const bullet = new THREE.Mesh(geometry, material);
+        bullet.visible = false;
+        alienBullets.push(bullet);
+        scene.add(bullet);
+    }
+}
+
 // Get next available bullet
 function getBullet() {
     for (let bullet of bullets) {
+        if (!bullet.visible) {
+            return bullet;
+        }
+    }
+    return null;
+}
+
+// Get next available alien bullet
+function getAlienBullet() {
+    for (let bullet of alienBullets) {
         if (!bullet.visible) {
             return bullet;
         }
@@ -189,6 +275,17 @@ function fireBullet() {
     }
 }
 
+// Fire bullet from alien
+function fireAlienBullet(alien) {
+    const bullet = getAlienBullet();
+    if (bullet) {
+        bullet.position.copy(alien.position);
+        bullet.position.y -= 0.5;
+        bullet.visible = true;
+        bullet.userData.direction = -1;
+    }
+}
+
 // Create victory text
 function createVictoryText() {
     const canvas = document.createElement('canvas');
@@ -212,9 +309,127 @@ function createVictoryText() {
     return victoryMesh;
 }
 
+// Handle player hit
+function handlePlayerHit() {
+    lives--;
+    updateLifeDisplay();
+    
+    if (lives <= 0) {
+        gameOver = true;
+        // Create game over text
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 512;
+        canvas.height = 128;
+        context.fillStyle = '#ff0000';
+        context.font = 'bold 48px Arial';
+        context.fillText('ALL YOUR BASE', 70, 60);
+        context.fillText('ARE BELONG TO US', 40, 110);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true
+        });
+        const geometry = new THREE.PlaneGeometry(12, 3);
+        const gameOverMesh = new THREE.Mesh(geometry, material);
+        gameOverMesh.position.set(0, 0, 1);
+        scene.add(gameOverMesh);
+    } else {
+        // Make player flash
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            player.visible = !player.visible;
+            flashCount++;
+            if (flashCount >= 6) { // 3 flashes
+                clearInterval(flashInterval);
+                player.visible = true;
+            }
+        }, 200);
+    }
+}
+
+// Get lowest visible alien in each column
+function getLowestAliensInColumns() {
+    const columnAliens = new Array(ALIENS_PER_ROW).fill(null);
+    
+    // Go through aliens from bottom to top
+    for (let row = ALIEN_ROWS - 1; row >= 0; row--) {
+        // Skip the first row (top row, index 0)
+        if (row === 0) continue;
+        
+        for (let col = 0; col < ALIENS_PER_ROW; col++) {
+            const alienIndex = row * ALIENS_PER_ROW + col;
+            const alien = aliens[alienIndex];
+            
+            // If this column doesn't have a lowest alien yet and this alien is visible
+            if (columnAliens[col] === null && alien.visible) {
+                columnAliens[col] = alien;
+            }
+        }
+    }
+    
+    return columnAliens.filter(alien => alien !== null);
+}
+
+// Create particle explosion
+function createExplosion(position, color) {
+    for (let i = 0; i < EXPLOSION_PARTICLES; i++) {
+        const geometry = new THREE.SphereGeometry(0.1, 4, 4);
+        const material = new THREE.MeshPhongMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 1
+        });
+        const particle = new THREE.Mesh(geometry, material);
+        
+        // Set particle position to explosion center
+        particle.position.copy(position);
+        
+        // Random velocity in all directions
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI * 2;
+        const speed = PARTICLE_SPEED * (0.5 + Math.random() * 0.5);
+        particle.userData.velocity = new THREE.Vector3(
+            speed * Math.sin(theta) * Math.cos(phi),
+            speed * Math.sin(theta) * Math.sin(phi),
+            speed * Math.cos(theta)
+        );
+        
+        // Set creation time for lifetime tracking
+        particle.userData.createTime = Date.now();
+        
+        particles.push(particle);
+        scene.add(particle);
+    }
+}
+
+// Update particles
+function updateParticles() {
+    const currentTime = Date.now();
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const particle = particles[i];
+        const age = currentTime - particle.userData.createTime;
+        
+        if (age > PARTICLE_LIFETIME) {
+            // Remove old particles
+            scene.remove(particle);
+            particles.splice(i, 1);
+        } else {
+            // Update position and opacity
+            particle.position.add(particle.userData.velocity);
+            particle.material.opacity = 1 - (age / PARTICLE_LIFETIME);
+            particle.userData.velocity.y -= 0.01; // Add gravity effect
+        }
+    }
+}
+
 // Update game state
 function update() {
     if (gameOver) return;
+
+    // Update particles
+    updateParticles();
 
     // Check for victory condition
     if (!gameWon) {
@@ -236,12 +451,20 @@ function update() {
     }
 
     // Update aliens with step-like movement
-    alienMoveCounter += ALIEN_MOVE_SPEED;
+    alienMoveCounter += currentAlienSpeed;
 
     // Check if it's time for next step
     if (alienMoveCounter >= ALIEN_MOVE_INTERVAL) {
         alienMoveCounter = 0;
         
+        // Get lowest aliens in each column and give them a chance to shoot
+        const lowestAliens = getLowestAliensInColumns();
+        lowestAliens.forEach(alien => {
+            if (Math.random() < ALIEN_SHOOT_CHANCE) {
+                fireAlienBullet(alien);
+            }
+        });
+
         // Check if any alien has reached the boundaries
         let shouldChangeDirection = false;
         aliens.forEach(alien => {
@@ -255,13 +478,25 @@ function update() {
 
         if (shouldChangeDirection) {
             alienDirection *= -1;
+            // Increase speed after each drop
+            currentAlienSpeed *= SPEED_INCREASE_FACTOR;
             aliens.forEach(alien => {
-                alien.position.y -= 0.5; // Make vertical drops more pronounced
+                alien.position.y -= ALIEN_DROP_DISTANCE;
+                // Add rotation animation for certain shapes
+                if (alien.geometry.type === 'OctahedronGeometry' ||
+                    alien.geometry.type === 'DodecahedronGeometry' ||
+                    alien.geometry.type === 'TetrahedronGeometry') {
+                    alien.rotation.y += Math.PI / 4;
+                }
             });
         } else {
             // Move all aliens one step
             aliens.forEach(alien => {
                 alien.position.x += ALIEN_STEP_SIZE * alienDirection;
+                // Add continuous rotation for certain shapes
+                if (alien.geometry.type === 'TorusGeometry') {
+                    alien.rotation.z += 0.1;
+                }
             });
         }
     }
@@ -283,26 +518,50 @@ function update() {
             }
         }
     });
+
+    alienBullets.forEach(bullet => {
+        if (bullet.visible) {
+            bullet.position.y += BULLET_SPEED * bullet.userData.direction;
+            
+            // Check for collision with player
+            if (bullet.position.distanceTo(player.position) < 1) {
+                bullet.visible = false;
+                handlePlayerHit();
+            }
+            
+            // Check for collision with shields
+            checkBulletCollisions(bullet);
+            
+            if (bullet.position.y < -10) {
+                bullet.visible = false;
+            }
+        }
+    });
 }
 
 // Check bullet collisions
 function checkBulletCollisions(bullet) {
-    // Check alien collisions
-    aliens.forEach((alien, index) => {
-        if (bullet.visible && alien.visible && 
-            bullet.position.distanceTo(alien.position) < 1) {
-            alien.visible = false;
-            bullet.visible = false;
-            score += 100;
-            document.getElementById('score').textContent = `Score: ${score}`;
-        }
-    });
+    // Check alien collisions only for player bullets
+    if (bullet.userData.direction === 1) { // Player bullets go up
+        aliens.forEach((alien, index) => {
+            if (bullet.visible && alien.visible && 
+                bullet.position.distanceTo(alien.position) < 1) {
+                alien.visible = false;
+                bullet.visible = false;
+                score += 100;
+                document.getElementById('score').textContent = `Score: ${score}`;
+                
+                // Create explosion at alien position with alien's color
+                createExplosion(alien.position.clone(), alien.material.color);
+            }
+        });
+    }
 
-    // Check shield collisions
+    // Check shield collisions for all bullets
     shields.forEach(shieldSegments => {
         shieldSegments.forEach(segment => {
             if (bullet.visible && segment.visible && 
-                bullet.position.distanceTo(segment.position) < 0.3) { // Reduced collision radius for more precise hits
+                bullet.position.distanceTo(segment.position) < 0.3) {
                 
                 // Damage the segment
                 segment.userData.health--;
@@ -314,8 +573,8 @@ function checkBulletCollisions(bullet) {
                     segment.material.opacity = segment.userData.health / 3;
                     const damage = 1 - segment.userData.health / 3;
                     segment.material.color.setRGB(
-                        damage, // More red as damage increases
-                        1 - damage * 0.5, // Less green as damage increases
+                        damage,
+                        1 - damage * 0.5,
                         0
                     );
                 }
