@@ -41,6 +41,7 @@ let alienMoveCounter = 0;
 let currentAlienSpeed = ALIEN_BASE_MOVE_SPEED;
 let gameOver = false;
 let gameWon = false;
+let backgroundMusic;
 
 // Initialize the game
 function init() {
@@ -50,6 +51,23 @@ function init() {
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    // Setup background music
+    backgroundMusic = new Audio('zerog.mp3');
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.5; // Set to 50% volume
+
+    // Start playing music on first user interaction
+    document.addEventListener('click', () => {
+        if (backgroundMusic.paused) {
+            backgroundMusic.play().catch(e => console.log("Audio play failed:", e));
+        }
+    });
+    document.addEventListener('keydown', () => {
+        if (backgroundMusic.paused) {
+            backgroundMusic.play().catch(e => console.log("Audio play failed:", e));
+        }
+    });
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -316,6 +334,8 @@ function handlePlayerHit() {
     
     if (lives <= 0) {
         gameOver = true;
+        // Stop music on game over
+        backgroundMusic.pause();
         // Create game over text
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -442,6 +462,8 @@ function update() {
         
         if (allAliensDestroyed) {
             gameWon = true;
+            // Stop music on victory
+            backgroundMusic.pause();
             scene.children.forEach(child => {
                 if (child.geometry && child.geometry.type === 'PlaneGeometry') {
                     child.visible = true;
