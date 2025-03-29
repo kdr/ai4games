@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: theme('colors.game-bg');
+  color: white;
+  overflow: hidden;
+}
+
+@layer components {
+  .key {
+    @apply w-16 h-16 border-2 rounded-md text-xl font-bold flex items-center justify-center 
+           transition-all duration-100 cursor-pointer select-none;
+  }
+  
+  .key-inactive {
+    @apply border-gray-500 text-gray-400;
+  }
+  
+  .key-active {
+    @apply border-game-accent text-white bg-game-accent bg-opacity-30;
+  }
+  
+  .key-perfect {
+    @apply border-perfect text-perfect bg-perfect bg-opacity-30 animate-pulse-fast;
+  }
+  
+  .key-good {
+    @apply border-good text-good bg-good bg-opacity-30 animate-pulse-fast;
+  }
+  
+  .key-ok {
+    @apply border-ok text-ok bg-ok bg-opacity-30 animate-pulse-fast;
+  }
+  
+  .key-miss {
+    @apply border-miss text-miss bg-miss bg-opacity-30 animate-pulse-fast;
+  }
+} 
