@@ -11,6 +11,8 @@ A rhythmic typing game inspired by Dance Dance Revolution, built with React, Typ
 - Combo system for consecutive successful hits
 - Difficulty increases over time
 - Visual feedback for key presses and timing accuracy
+- Background music and sound effects for enhanced gaming experience
+- Mute controls for sound adjustment
 
 ## 🛠 Technologies Used
 
@@ -59,6 +61,7 @@ yarn dev
 3. Try to time your key presses for when the letters reach the target line at the bottom
 4. Aim for Perfect timing to maximize your score and build combos
 5. The game gets progressively harder - can you keep up?
+6. Use the mute button in the top-right corner to toggle sound
 
 ## 📦 Building for Production
 

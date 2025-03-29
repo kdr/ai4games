@@ -4,6 +4,7 @@ import GameStore, { FallingLetter, HitAccuracy } from '../utils/GameStore';
 
 interface GameProps {
   started: boolean;
+  isMuted: boolean;
 }
 
 // Letters to use in the game
@@ -18,8 +19,9 @@ const COLORS = {
   default: 0x00FFCC,               // Game accent color
 };
 
-const Game: React.FC<GameProps> = ({ started }) => {
+const Game: React.FC<GameProps> = ({ started, isMuted }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { letters, addLetter, updateLetters, spawnRate, increaseDifficulty } = GameStore();
   
   // References to reusable three.js objects
@@ -29,6 +31,42 @@ const Game: React.FC<GameProps> = ({ started }) => {
   const lettersRef = useRef<Map<string, THREE.Mesh>>(new Map());
   const lanesRef = useRef<THREE.Mesh[]>([]);
   const targetZoneRef = useRef<THREE.Mesh | null>(null);
+
+  // Handle background music
+  useEffect(() => {
+    // Create audio element if it doesn't exist
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/backing.mp3');
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.7;
+    }
+
+    // Set muted state
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+
+    // Play or pause based on game state
+    if (started && !isMuted) {
+      audioRef.current.play().catch(error => {
+        console.warn('Audio playback failed:', error);
+      });
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+      if (!started) {
+        audioRef.current.currentTime = 0;
+      }
+    }
+
+    // Clean up audio on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+    };
+  }, [started, isMuted]);
 
   // Initialize the 3D scene
   useEffect(() => {
@@ -83,7 +121,7 @@ const Game: React.FC<GameProps> = ({ started }) => {
     });
     
     const targetZone = new THREE.Mesh(targetGeometry, targetMaterial);
-    targetZone.position.y = -8;
+    targetZone.position.y = -6.5;
     scene.add(targetZone);
     targetZoneRef.current = targetZone;
 
@@ -181,7 +219,7 @@ const Game: React.FC<GameProps> = ({ started }) => {
     // Update or create letter meshes
     letters.forEach(letter => {
       // Convert position from 0-100 to actual Y coordinate (-10 to 10)
-      const yPos = 10 - (letter.position / 5);
+      const yPos = 10 - (letter.position / 5.5);
       
       // Calculate x position based on lane
       const laneWidth = 1.2;

@@ -47,7 +47,7 @@ const KeyboardControls: React.FC = () => {
   };
 
   return (
-    <div className="flex justify-center gap-2 pb-4">
+    <div className="flex justify-center gap-2 pb-2 fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 pt-2 z-50">
       {KEYS.map((key) => (
         <div key={key} className={getKeyClass(key)}>
           {key}

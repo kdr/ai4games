@@ -23,6 +23,55 @@ export const HIT_WINDOWS = {
   [HitAccuracy.OK]: 500,      // Within 500ms
 };
 
+// Define the target position for hit detection (0-100)
+const TARGET_POSITION = 85; // Adjusted to match the visual target line
+
+// Store loaded sound effects
+const SOUND_EFFECTS: Record<HitAccuracy, HTMLAudioElement | undefined> = {
+  [HitAccuracy.PERFECT]: undefined,
+  [HitAccuracy.GOOD]: undefined,
+  [HitAccuracy.OK]: undefined,
+  [HitAccuracy.MISS]: undefined,
+};
+
+// Create reusable audio elements for sound effects with error handling
+const createSoundEffect = (src: string, volume: number = 0.5): HTMLAudioElement | undefined => {
+  try {
+    const audio = new Audio(src);
+    audio.volume = volume;
+    return audio;
+  } catch (error) {
+    console.warn(`Failed to create sound effect from ${src}:`, error);
+    return undefined;
+  }
+};
+
+// Try to load sound effects, but don't crash if they're missing
+try {
+  SOUND_EFFECTS[HitAccuracy.PERFECT] = createSoundEffect('/sounds/perfect.mp3', 0.6);
+  SOUND_EFFECTS[HitAccuracy.GOOD] = createSoundEffect('/sounds/good.mp3', 0.5);
+  SOUND_EFFECTS[HitAccuracy.OK] = createSoundEffect('/sounds/ok.mp3', 0.4);
+  SOUND_EFFECTS[HitAccuracy.MISS] = createSoundEffect('/sounds/miss.mp3', 0.3);
+} catch (error) {
+  console.warn('Failed to load some sound effects:', error);
+}
+
+// Play sound effect with error handling
+const playSoundEffect = (accuracy: HitAccuracy, isMuted: boolean = false) => {
+  if (isMuted) return;
+  
+  const soundEffect = SOUND_EFFECTS[accuracy];
+  if (!soundEffect) return;
+  
+  try {
+    // Clone the audio to allow multiple sounds simultaneously
+    const sound = soundEffect.cloneNode(true) as HTMLAudioElement;
+    sound.play().catch(err => console.warn('Sound play failed:', err));
+  } catch (error) {
+    console.warn(`Failed to play ${accuracy} sound effect:`, error);
+  }
+};
+
 // Define falling letter interface
 export interface FallingLetter {
   id: string;
@@ -46,6 +95,7 @@ interface GameStats {
   misses: number;
   lettersProcessed: number;
   accuracy: number;
+  isMuted: boolean;
 }
 
 // Define game state interface
@@ -64,6 +114,7 @@ interface GameState extends GameStats {
   registerKeyState: (key: string, active: boolean) => void;
   resetGame: () => void;
   increaseDifficulty: () => void;
+  setMuted: (muted: boolean) => void;
 }
 
 // Initial game state
@@ -77,6 +128,7 @@ const initialState: GameStats = {
   misses: 0,
   lettersProcessed: 0,
   accuracy: 100,
+  isMuted: false,
 };
 
 // Create the store
@@ -147,6 +199,9 @@ const GameStore = create<GameState>((set, get) => ({
           hit: true,
           accuracy: HitAccuracy.MISS,
         });
+        
+        // Play miss sound
+        playSoundEffect(HitAccuracy.MISS, state.isMuted);
       } else {
         // Letter still falling
         newLetters.push({
@@ -218,7 +273,7 @@ const GameStore = create<GameState>((set, get) => ({
     hitLetter = laneLetters[0];
     
     // Calculate timing difference
-    const idealHitPosition = 100; // Bottom of the screen
+    const idealHitPosition = TARGET_POSITION; // Updated to use the target position constant
     const positionDiff = Math.abs(hitLetter.position - idealHitPosition);
     
     // Convert position difference to timing difference
@@ -236,6 +291,9 @@ const GameStore = create<GameState>((set, get) => ({
     } else {
       hitAccuracy = HitAccuracy.MISS;
     }
+    
+    // Play sound effect based on accuracy
+    playSoundEffect(hitAccuracy, state.isMuted);
     
     // Update the letter with hit information
     updatedLetters = updatedLetters.map(l => {
@@ -332,15 +390,16 @@ const GameStore = create<GameState>((set, get) => ({
   },
 
   resetGame: () => {
-    set({
+    set(state => ({
       ...initialState,
+      isMuted: state.isMuted, // Preserve mute setting
       letters: [],
       keysActive: {},
       keyHitState: {},
       lastUpdate: Date.now(),
       difficulty: 1,
       spawnRate: 1500,
-    });
+    }));
   },
 
   increaseDifficulty: () => {
@@ -348,6 +407,10 @@ const GameStore = create<GameState>((set, get) => ({
       difficulty: state.difficulty + 0.2,
       spawnRate: Math.max(500, state.spawnRate - 100),
     }));
+  },
+
+  setMuted: (muted: boolean) => {
+    set({ isMuted: muted });
   },
 }));
 
