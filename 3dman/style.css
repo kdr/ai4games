@@ -1,0 +1,7 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+}
+cavnas {
+    display: block; /* Remove default canvas spacing */
+} 
