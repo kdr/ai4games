@@ -1,0 +1,89 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+}
+
+#game-canvas {
+    display: block; /* Remove extra space below canvas */
+}
+
+#info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+#launch-button {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    z-index: 100;
+}
+
+#game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.5em;
+    z-index: 101;
+}
+
+#game-over button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+/* Aiming UI */
+.aiming-ui {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    display: none;
+    z-index: 200 !important; /* Keep high z-index */
+}
+
+#vignette {
+    /* Restore original radial gradient */
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.85) 90%);
+    /* background-color: rgba(255, 0, 255, 0.2); */ /* Remove debug color */
+}
+
+#crosshair-h, #crosshair-v {
+    /* Restore subtle crosshair */
+    background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+    /* background-color: #00ff00; */ /* Remove debug color */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#crosshair-h {
+    width: 30px; /* Original size */
+    height: 2px; /* Original thickness */
+}
+
+#crosshair-v {
+    width: 2px; /* Original thickness */
+    height: 30px; /* Original size */
+} 

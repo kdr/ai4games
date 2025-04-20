@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cannon Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="info">
+        Shots Left: <span id="shots">3</span><br>
+        Score: <span id="score">0</span><br>
+        Total Score: <span id="total-score">-</span>
+    </div>
+    <button id="launch-button">Launch</button>
+    <div id="game-over" style="display: none;">
+        Game Over! Final Score: <span id="final-score">0</span>
+        <button id="restart-button">Restart</button>
+    </div>
+
+    <!-- Aiming UI Elements -->
+    <div id="vignette" class="aiming-ui"></div>
+    <div id="crosshair-h" class="aiming-ui"></div>
+    <div id="crosshair-v" class="aiming-ui"></div>
+
+    <canvas id="game-canvas"></canvas>
+    <!-- Use CDN for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html> 
