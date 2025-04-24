@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #faf8ef;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background-color: #bbada0;
+            padding: 10px;
+            border-radius: 6px;
+            position: relative;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #eee4da;
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #776e65;
+            position: relative;
+            transition: all 0.15s ease-in-out;
+        }
+        .score-container {
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .tile-2 { background-color: #eee4da; }
+        .tile-4 { background-color: #ede0c8; }
+        .tile-8 { background-color: #f2b179; color: white; }
+        .tile-16 { background-color: #f59563; color: white; }
+        .tile-32 { background-color: #f67c5f; color: white; }
+        .tile-64 { background-color: #f65e3b; color: white; }
+        .tile-128 { background-color: #edcf72; color: white; font-size: 32px; }
+        .tile-256 { background-color: #edcc61; color: white; font-size: 32px; }
+        .tile-512 { background-color: #edc850; color: white; font-size: 32px; }
+        .tile-1024 { background-color: #edc53f; color: white; font-size: 28px; }
+        .tile-2048 { background-color: #edc22e; color: white; font-size: 28px; }
+
+        /* Animation classes */
+        .slide-left { transform: translateX(-110px); }
+        .slide-right { transform: translateX(110px); }
+        .slide-up { transform: translateY(-110px); }
+        .slide-down { transform: translateY(110px); }
+        .new-tile {
+            animation: pop 0.2s ease-in-out;
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="score-container">
+        Score: <span id="score">0</span>
+    </div>
+    <div class="container">
+        <div class="grid" id="grid"></div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html> 
